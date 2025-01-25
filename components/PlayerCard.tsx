@@ -1,28 +1,36 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Animated } from 'react-native';
+import { View, StyleSheet, Pressable, Animated, useColorScheme } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { Player } from '../types/player';
+import { Colors } from '../constants/Colors';
 
 interface PlayerCardProps {
   player: Player;
   onPress?: (player: Player) => void;
 }
 
-const StatBar = ({ value, label }: { value: number; label: string }) => (
-  <View style={styles.statContainer}>
-    <View style={styles.statBarContainer}>
-      <View style={[styles.statBar, { width: `${value}%` }]} />
+const StatBar = ({ value, label }: { value: number; label: string }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  return (
+    <View style={styles.statContainer}>
+      <View style={[styles.statBarContainer, { backgroundColor: isDark ? '#2D2D2D' : '#f0f0f0' }]}>
+        <View style={[styles.statBar, { backgroundColor: isDark ? '#4A9EFF' : '#2089dc' }]} />
+      </View>
+      <View style={styles.statLabelContainer}>
+        <ThemedText type="default" style={styles.statLabel}>{label}</ThemedText>
+        <ThemedText type="default" style={styles.statValue}>{value}</ThemedText>
+      </View>
     </View>
-    <View style={styles.statLabelContainer}>
-      <ThemedText type="default" style={styles.statLabel}>{label}</ThemedText>
-      <ThemedText type="default" style={styles.statValue}>{value}</ThemedText>
-    </View>
-  </View>
-);
+  );
+};
 
 export default function PlayerCard({ player, onPress }: PlayerCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(1));
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
@@ -48,7 +56,7 @@ export default function PlayerCard({ player, onPress }: PlayerCardProps) {
       case 'Gold': return '#FFA500';
       case 'Silver': return '#C0C0C0';
       case 'Bronze': return '#CD7F32';
-      default: return '#666';
+      default: return isDark ? '#9BA1A6' : '#666';
     }
   };
 
@@ -72,7 +80,10 @@ export default function PlayerCard({ player, onPress }: PlayerCardProps) {
     >
       <Animated.View style={[
         styles.card,
-        { transform: [{ scale: scaleAnim }] }
+        { 
+          backgroundColor: isDark ? Colors.dark.background : Colors.light.background,
+          transform: [{ scale: scaleAnim }] 
+        }
       ]}>
         <View style={styles.header}>
           <View style={styles.mainInfo}>
@@ -81,12 +92,18 @@ export default function PlayerCard({ player, onPress }: PlayerCardProps) {
               <View style={[styles.ratingBadge, { backgroundColor: tierColor }]}>
                 <ThemedText type="subtitle" style={styles.rating}>{player.ovr}</ThemedText>
               </View>
-              <ThemedText type="default" style={styles.position}>{player.position}</ThemedText>
+              <ThemedText type="default" style={[styles.position, { color: isDark ? '#9BA1A6' : '#666' }]}>
+                {player.position}
+              </ThemedText>
             </View>
           </View>
           <View style={styles.teamInfo}>
-            <ThemedText type="small" style={styles.teamName}>{player.team}</ThemedText>
-            <ThemedText type="small" style={styles.nation}>{player.nation}</ThemedText>
+            <ThemedText type="small" style={[styles.teamName, { color: isDark ? '#9BA1A6' : '#666' }]}>
+              {player.team}
+            </ThemedText>
+            <ThemedText type="small" style={[styles.nation, { color: isDark ? '#9BA1A6' : '#666' }]}>
+              {player.nation}
+            </ThemedText>
           </View>
         </View>
 
@@ -102,7 +119,7 @@ export default function PlayerCard({ player, onPress }: PlayerCardProps) {
               <StatBar value={player.def} label="DEF" />
               <StatBar value={player.phy} label="PHY" />
             </View>
-            <View style={styles.additionalInfo}>
+            <View style={[styles.additionalInfo, { borderTopColor: isDark ? '#2D2D2D' : '#f0f0f0' }]}>
               <ThemedText type="small">Age: {player.age}</ThemedText>
               <ThemedText type="small">Height: {player.height}cm</ThemedText>
               <ThemedText type="small">Weak Foot: {'⭐️'.repeat(player.weak_foot)}</ThemedText>
@@ -117,7 +134,6 @@ export default function PlayerCard({ player, onPress }: PlayerCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 12,
@@ -158,19 +174,16 @@ const styles = StyleSheet.create({
   },
   position: {
     fontSize: 14,
-    color: '#666',
   },
   teamInfo: {
     alignItems: 'flex-end',
   },
   teamName: {
     fontSize: 12,
-    color: '#666',
     marginBottom: 2,
   },
   nation: {
     fontSize: 12,
-    color: '#666',
   },
   stats: {
     marginTop: 12,
@@ -186,14 +199,12 @@ const styles = StyleSheet.create({
   },
   statBarContainer: {
     height: 4,
-    backgroundColor: '#f0f0f0',
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 2,
   },
   statBar: {
     height: '100%',
-    backgroundColor: '#2089dc',
     borderRadius: 2,
   },
   statLabelContainer: {
@@ -203,17 +214,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
   },
   statValue: {
     fontSize: 12,
-    color: '#666',
   },
   additionalInfo: {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
     gap: 4,
   },
 });

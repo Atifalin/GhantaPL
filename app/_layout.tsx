@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { UserPrefsProvider } from '../contexts/UserPrefsContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -74,7 +75,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <UserPrefsProvider>
+        <RootLayoutNav />
+      </UserPrefsProvider>
     </AuthProvider>
   );
 }

@@ -1,49 +1,163 @@
 import React from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
-import { Text, Card, Button } from '@rneui/themed';
+import { StyleSheet, View, ScrollView, useColorScheme, Pressable } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUserPrefs } from '../../contexts/UserPrefsContext';
+import { usePresence } from '../../hooks/usePresence';
+import { ThemedView } from '../../components/ThemedView';
+import { ThemedText } from '../../components/ThemedText';
+import { Colors } from '../../constants/Colors';
+import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+
+const ActionButton = ({ title, onPress, icon }: { title: string; onPress?: () => void; icon?: string }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: pressed 
+            ? isDark ? '#2D2D2D' : '#f0f0f0'
+            : 'transparent',
+          borderColor: isDark ? '#2D2D2D' : '#e0e0e0',
+        }
+      ]}
+    >
+      <View style={styles.buttonContent}>
+        {icon && (
+          <MaterialIcons 
+            name={icon} 
+            size={20} 
+            color={isDark ? Colors.dark.text : Colors.light.text} 
+            style={styles.buttonIcon}
+          />
+        )}
+        <ThemedText type="default" style={styles.buttonText}>{title}</ThemedText>
+      </View>
+    </Pressable>
+  );
+};
+
+const Card = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  return (
+    <View style={[
+      styles.card,
+      {
+        backgroundColor: isDark ? Colors.dark.background : Colors.light.background,
+        borderColor: isDark ? '#2D2D2D' : '#e0e0e0',
+      }
+    ]}>
+      <ThemedText type="subtitle" style={styles.cardTitle}>{title}</ThemedText>
+      <View style={[
+        styles.divider,
+        { backgroundColor: isDark ? '#2D2D2D' : '#e0e0e0' }
+      ]} />
+      {children}
+    </View>
+  );
+};
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const { preferences } = useUserPrefs();
+  const { onlineUsers } = usePresence();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const navigateToProfile = () => {
+    router.push('/modal');
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text h1>Welcome to GhantaPL</Text>
-        <Text style={styles.subtitle}>Your FIFA Auction Platform</Text>
+    <ScrollView style={[
+      styles.container,
+      { backgroundColor: isDark ? Colors.dark.background : Colors.light.background }
+    ]}>
+      <View style={[
+        styles.header,
+        { backgroundColor: isDark ? '#1A1D1E' : '#f9f9f9' }
+      ]}>
+        <View style={styles.headerTop}>
+          <ThemedText type="title" style={styles.title}>Welcome to GhantaPL</ThemedText>
+          <Pressable
+            onPress={navigateToProfile}
+            style={({ pressed }) => [
+              styles.profileButton,
+              {
+                backgroundColor: pressed 
+                  ? isDark ? '#2D2D2D' : '#f0f0f0'
+                  : isDark ? '#252829' : '#fff',
+              }
+            ]}
+          >
+            <ThemedText style={styles.profileEmoji}>{preferences.avatar}</ThemedText>
+          </Pressable>
+        </View>
+        <ThemedText type="default" style={styles.subtitle}>Your FIFA Auction Platform</ThemedText>
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>Online Users</ThemedText>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.onlineUsersContainer}
+        >
+          {onlineUsers.map((onlineUser) => (
+            <View 
+              key={onlineUser.id}
+              style={[
+                styles.onlineUserCard,
+                { backgroundColor: isDark ? '#252829' : '#fff' }
+              ]}
+            >
+              <View style={[
+                styles.onlineUserAvatar,
+                { backgroundColor: isDark ? '#2D2D2D' : '#f0f0f0' }
+              ]}>
+                <ThemedText style={styles.onlineUserEmoji}>{onlineUser.avatar}</ThemedText>
+              </View>
+              <View style={styles.onlineUserInfo}>
+                <ThemedText 
+                  type="default" 
+                  style={styles.onlineUserEmail} 
+                  numberOfLines={1}
+                >
+                  {onlineUser.email}
+                </ThemedText>
+                <View style={styles.onlineStatus}>
+                  <View style={styles.onlineDot} />
+                  <ThemedText type="default" style={styles.onlineText}>Online</ThemedText>
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.content}>
-        <Card>
-          <Card.Title>Quick Actions</Card.Title>
-          <Card.Divider />
-          <Button
-            title="Create Auction"
-            type="outline"
-            containerStyle={styles.buttonContainer}
-          />
-          <Button
-            title="Join Auction"
-            type="outline"
-            containerStyle={styles.buttonContainer}
-          />
-          <Button
-            title="View My Teams"
-            type="outline"
-            containerStyle={styles.buttonContainer}
-          />
+        <Card title="Quick Actions">
+          <ActionButton title="Create Auction" icon="gavel" />
+          <ActionButton title="Join Auction" icon="groups" />
+          <ActionButton title="View My Teams" icon="sports-soccer" />
         </Card>
 
-        <Card>
-          <Card.Title>Active Auctions</Card.Title>
-          <Card.Divider />
-          <Text style={styles.emptyText}>No active auctions at the moment</Text>
+        <Card title="Active Auctions">
+          <ThemedText type="default" style={styles.emptyText}>
+            No active auctions at the moment
+          </ThemedText>
         </Card>
 
-        <Card>
-          <Card.Title>My Recent Activity</Card.Title>
-          <Card.Divider />
-          <Text style={styles.emptyText}>No recent activity</Text>
+        <Card title="My Recent Activity">
+          <ThemedText type="default" style={styles.emptyText}>
+            No recent activity
+          </ThemedText>
         </Card>
       </View>
     </ScrollView>
@@ -53,27 +167,153 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    paddingTop: 60,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
   },
   subtitle: {
+    opacity: 0.7,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    overflow: 'hidden',
+  },
+  profileEmoji: {
+    fontSize: 20,
+    textAlign: 'center',
+    lineHeight: 40,
+  },
+  section: {
+    padding: 12,
+  },
+  sectionTitle: {
     fontSize: 16,
-    color: '#666',
-    marginTop: 5,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  onlineUsersContainer: {
+    paddingRight: 12,
+  },
+  onlineUserCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  onlineUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  onlineUserEmoji: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 32,
+  },
+  onlineUserInfo: {
+    maxWidth: 120,
+  },
+  onlineUserEmail: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  onlineStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  onlineDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#4CAF50',
+    marginRight: 3,
+  },
+  onlineText: {
+    fontSize: 10,
+    opacity: 0.7,
   },
   content: {
     padding: 10,
   },
-  buttonContainer: {
-    marginVertical: 5,
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  divider: {
+    height: 1,
+    marginBottom: 12,
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  buttonText: {
+    textAlign: 'center',
+    fontSize: 16,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#666',
+    opacity: 0.7,
     padding: 20,
   },
 });
