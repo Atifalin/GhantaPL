@@ -1,50 +1,81 @@
-# Welcome to your Expo app 👋
+# GhantaPL - Expo Authentication Template
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern authentication template for Expo applications, featuring a complete authentication flow using Supabase.
 
-## Get started
+## Features
 
-1. Install dependencies
+- 🔐 Complete authentication flow
+  - Sign up with email/password
+  - Sign in with email/password
+  - Password reset functionality
+  - Profile management
+- 📱 Modern UI with React Native Elements
+- 🎯 TypeScript support
+- 📍 Expo Router for file-based routing
+- 🔄 Loading states and error handling
+- 🎨 Clean and maintainable code structure
 
+## Getting Started
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/Atifalin/GhantaPL.git
+   cd GhantaPL
+   ```
+
+2. Install dependencies
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Set up environment variables
+   - Copy `.env.example` to `.env`
+   - Add your Supabase credentials:
+     ```
+     EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+     EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+     ```
 
+4. Start the development server
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Project Structure
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+GhantaPL/
+├── app/
+│   ├── (auth)/           # Authentication screens
+│   ├── (tabs)/           # Main app tabs
+│   └── _layout.tsx       # Root layout
+├── components/           # Reusable components
+├── contexts/            # Context providers
+├── lib/                # External service setup
+└── types/              # TypeScript types
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Authentication Flow
 
-## Learn more
+1. New users start at the onboarding screen
+2. Users can sign up with email/password
+3. Existing users can sign in
+4. Authenticated users are redirected to the home screen
+5. Profile management available in the profile tab
+   - View profile information
+   - Change password
+   - Sign out
 
-To learn more about developing your project with Expo, look at the following resources:
+## Contributing
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Feel free to submit issues and enhancement requests!
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Acknowledgments
+
+- [Expo](https://expo.dev)
+- [Supabase](https://supabase.com)
+- [React Native Elements](https://reactnativeelements.com)
