@@ -17,6 +17,13 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
+        name="players"
+        options={{
+          title: 'Players',
+          tabBarIcon: ({ color }) => <MaterialIcons name="sports-soccer" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
