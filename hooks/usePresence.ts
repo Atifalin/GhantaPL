@@ -7,6 +7,7 @@ export type OnlineUser = {
   id: string;
   email: string;
   avatar: string;
+  displayName: string;
   lastSeen: string;
 };
 
@@ -14,9 +15,27 @@ export function usePresence() {
   const { user } = useAuth();
   const { preferences } = useUserPrefs();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [profile, setProfile] = useState<{ display_name: string } | null>(null);
 
+  // Load user profile
   useEffect(() => {
     if (!user) return;
+
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+      
+      setProfile(data);
+    };
+
+    loadProfile();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !profile) return;
 
     // Initialize presence channel
     const channel = supabase.channel('online-users', {
@@ -30,44 +49,46 @@ export function usePresence() {
     // Handle presence state changes
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState();
-      const users: OnlineUser[] = Object.values(state).map((presence: any) => {
-        const presenceData = presence[0]; // Get first instance of user presence
-        return {
-          id: presenceData.user_id,
-          email: presenceData.email,
-          avatar: presenceData.avatar,
-          lastSeen: new Date().toISOString(),
-        };
+      // Deduplicate users by taking the latest presence for each user
+      const userMap = new Map();
+      Object.values(state).forEach((presences: any) => {
+        const latestPresence = presences.reduce((latest: any, current: any) => {
+          return !latest || new Date(current.online_at) > new Date(latest.online_at)
+            ? current
+            : latest;
+        }, null);
+        
+        if (latestPresence) {
+          userMap.set(latestPresence.user_id, {
+            id: latestPresence.user_id,
+            email: latestPresence.email,
+            avatar: latestPresence.avatar,
+            displayName: latestPresence.displayName,
+            lastSeen: latestPresence.online_at,
+          });
+        }
       });
-      setOnlineUsers(users);
+      
+      setOnlineUsers(Array.from(userMap.values()));
     });
 
-    // Track user presence
-    channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
-      console.log('User joined:', key, newPresences);
-    });
-
-    channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-      console.log('User left:', key, leftPresences);
-    });
-
-    // Subscribe to channel and track presence
+    // Subscribe to presence changes
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         await channel.track({
-          user_id: user.id,
+          online_at: new Date().toISOString(),
           email: user.email,
           avatar: preferences.avatar,
-          online_at: new Date().toISOString(),
+          displayName: profile.display_name || user.email?.split('@')[0] || 'Anonymous',
+          user_id: user.id,
         });
       }
     });
 
-    // Cleanup
     return () => {
       channel.unsubscribe();
     };
-  }, [user, preferences.avatar]);
+  }, [user, preferences.avatar, profile]);
 
   return { onlineUsers };
 }

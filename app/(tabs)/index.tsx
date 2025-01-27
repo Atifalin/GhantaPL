@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, ScrollView, useColorScheme, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserPrefs } from '../../contexts/UserPrefsContext';
 import { usePresence } from '../../hooks/usePresence';
@@ -74,98 +75,129 @@ export default function HomeScreen() {
     router.push('/modal');
   };
 
-  return (
-    <ScrollView style={[
-      styles.container,
-      { backgroundColor: isDark ? Colors.dark.background : Colors.light.background }
-    ]}>
-      <View style={[
-        styles.header,
-        { backgroundColor: isDark ? '#1A1D1E' : '#f9f9f9' }
-      ]}>
-        <View style={styles.headerTop}>
-          <ThemedText type="title" style={styles.title}>Welcome to GhantaPL</ThemedText>
-          <Pressable
-            onPress={navigateToProfile}
-            style={({ pressed }) => [
-              styles.profileButton,
-              {
-                backgroundColor: pressed 
-                  ? isDark ? '#2D2D2D' : '#f0f0f0'
-                  : isDark ? '#252829' : '#fff',
-              }
-            ]}
-          >
-            <ThemedText style={styles.profileEmoji}>{preferences.avatar}</ThemedText>
-          </Pressable>
-        </View>
-        <ThemedText type="default" style={styles.subtitle}>Your FIFA Auction Platform</ThemedText>
-      </View>
+  const quickActions = [
+    {
+      id: 'create-auction',
+      title: 'Create Auction',
+      icon: 'gavel',
+      onPress: () => router.push('/auctions/create')
+    },
+    {
+      id: 'join-auction',
+      title: 'Join Auction',
+      icon: 'groups',
+      onPress: () => router.push('/auctions')
+    },
+    {
+      id: 'view-teams',
+      title: 'View My Teams',
+      icon: 'sports-soccer',
+      onPress: () => router.push('/teams')
+    }
+  ];
 
-      <View style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Online Users</ThemedText>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.onlineUsersContainer}
-        >
-          {onlineUsers.map((onlineUser) => (
-            <View 
-              key={onlineUser.id}
-              style={[
-                styles.onlineUserCard,
-                { backgroundColor: isDark ? '#252829' : '#fff' }
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={[
+        styles.scrollView,
+        { backgroundColor: isDark ? Colors.dark.background : Colors.light.background }
+      ]}>
+        <View style={[
+          styles.header,
+          { backgroundColor: isDark ? '#1A1D1E' : '#f9f9f9' }
+        ]}>
+          <View style={styles.headerTop}>
+            <ThemedText type="title" style={styles.title}>Welcome to GhantaPL</ThemedText>
+            <Pressable
+              onPress={navigateToProfile}
+              style={({ pressed }) => [
+                styles.profileButton,
+                {
+                  backgroundColor: pressed 
+                    ? isDark ? '#2D2D2D' : '#f0f0f0'
+                    : isDark ? '#252829' : '#fff',
+                }
               ]}
             >
-              <View style={[
-                styles.onlineUserAvatar,
-                { backgroundColor: isDark ? '#2D2D2D' : '#f0f0f0' }
-              ]}>
-                <ThemedText style={styles.onlineUserEmoji}>{onlineUser.avatar}</ThemedText>
-              </View>
-              <View style={styles.onlineUserInfo}>
-                <ThemedText 
-                  type="default" 
-                  style={styles.onlineUserEmail} 
-                  numberOfLines={1}
-                >
-                  {onlineUser.email}
-                </ThemedText>
-                <View style={styles.onlineStatus}>
-                  <View style={styles.onlineDot} />
-                  <ThemedText type="default" style={styles.onlineText}>Online</ThemedText>
+              <ThemedText style={styles.profileEmoji}>{preferences.avatar}</ThemedText>
+            </Pressable>
+          </View>
+          <ThemedText type="default" style={styles.subtitle}>Your FIFA Auction Platform</ThemedText>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Online Users</ThemedText>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.onlineUsersContainer}
+          >
+            {onlineUsers.map((onlineUser, index) => (
+              <View 
+                key={`online-user-${onlineUser.id || index}`}
+                style={[
+                  styles.onlineUserCard,
+                  { backgroundColor: isDark ? '#252829' : '#fff' }
+                ]}
+              >
+                <View style={[
+                  styles.onlineUserAvatar,
+                  { backgroundColor: isDark ? '#2D2D2D' : '#f0f0f0' }
+                ]}>
+                  <ThemedText style={styles.onlineUserEmoji}>{onlineUser.avatar}</ThemedText>
+                </View>
+                <View style={styles.onlineUserInfo}>
+                  <ThemedText 
+                    type="default" 
+                    style={styles.onlineUserName} 
+                    numberOfLines={1}
+                  >
+                    {onlineUser.displayName}
+                  </ThemedText>
+                  <View style={styles.onlineStatus}>
+                    <View style={styles.onlineDot} />
+                    <ThemedText type="default" style={styles.onlineText}>Online</ThemedText>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+            ))}
+          </ScrollView>
+        </View>
 
-      <View style={styles.content}>
-        <Card title="Quick Actions">
-          <ActionButton title="Create Auction" icon="gavel" />
-          <ActionButton title="Join Auction" icon="groups" />
-          <ActionButton title="View My Teams" icon="sports-soccer" />
-        </Card>
+        <View style={styles.content}>
+          <Card title="Quick Actions">
+            {quickActions.map(action => (
+              <ActionButton 
+                key={action.id}
+                title={action.title}
+                icon={action.icon}
+                onPress={action.onPress}
+              />
+            ))}
+          </Card>
 
-        <Card title="Active Auctions">
-          <ThemedText type="default" style={styles.emptyText}>
-            No active auctions at the moment
-          </ThemedText>
-        </Card>
+          <Card title="Active Auctions">
+            <ThemedText type="default" style={styles.emptyText}>
+              No active auctions at the moment
+            </ThemedText>
+          </Card>
 
-        <Card title="My Recent Activity">
-          <ThemedText type="default" style={styles.emptyText}>
-            No recent activity
-          </ThemedText>
-        </Card>
-      </View>
-    </ScrollView>
+          <Card title="My Recent Activity">
+            <ThemedText type="default" style={styles.emptyText}>
+              No recent activity
+            </ThemedText>
+          </Card>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   header: {
@@ -249,6 +281,11 @@ const styles = StyleSheet.create({
   },
   onlineUserInfo: {
     maxWidth: 120,
+  },
+  onlineUserName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   onlineUserEmail: {
     fontSize: 12,

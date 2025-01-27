@@ -10,6 +10,8 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { UserPrefsProvider } from '../contexts/UserPrefsContext';
+import { ToastProvider } from './context/ToastContext';
+import { RealtimeProvider } from './context/RealtimeContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -25,12 +27,12 @@ function AuthMiddleware() {
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
 
-    if (!user && (inTabsGroup || !inAuthGroup)) {
-      // If user is not logged in and trying to access protected routes,
+    if (!user && !inAuthGroup) {
+      // If user is not logged in and not in auth group,
       // redirect to onboarding
       router.replace('/(auth)/onboarding');
     } else if (user && inAuthGroup) {
-      // If user is logged in and trying to access auth routes,
+      // If user is logged in and in auth group,
       // redirect to home
       router.replace('/(tabs)');
     }
@@ -76,7 +78,11 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <UserPrefsProvider>
-        <RootLayoutNav />
+        <ToastProvider>
+          <RealtimeProvider>
+            <RootLayoutNav />
+          </RealtimeProvider>
+        </ToastProvider>
       </UserPrefsProvider>
     </AuthProvider>
   );

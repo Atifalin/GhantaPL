@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
 import { Button, Input, Text } from '@rneui/themed';
 import { router } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase/client';
 import LoadingScreen from '../../components/LoadingScreen';
 import { useAuth } from '../../contexts/AuthContext';
 

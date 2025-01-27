@@ -1,108 +1,76 @@
-# GhantaPL - FIFA Auction Platform
+# GhantaPL
 
-A modern FIFA player auction platform built with Expo and Supabase, featuring a complete player management system and auction functionality.
+A FIFA auction platform built with React Native and Supabase.
 
 ## Features
 
-- 🎮 Complete Player Management
-  - Browse players with compact, interactive cards
-  - Filter by tier (Elite, Gold, Silver, Bronze)
-  - Filter by position (ATT, MID, DEF, GK)
-  - Sort by various attributes (OVR, Pace, Shot, etc.)
-  - Search players by name, team, or nation
-  - 3D Touch support for detailed player stats
-- 🔐 Authentication System
-  - Sign up with email/password
-  - Sign in with email/password
-  - Password reset functionality
-  - Profile management
-- 📱 Modern UI with React Native
-- 🎯 TypeScript support
-- 📍 Expo Router for file-based routing
-- 🔄 Loading states and error handling
-- 🎨 Clean and maintainable code structure
+- 🎮 Real-time auction system
+- 👥 Player management
+- 🔄 Live updates and notifications
+- 🌓 Dark mode support
+- 🔒 Secure authentication
 
-## Player Features
+## Recent Updates
 
-### Player Cards
-- Compact view showing essential info
-- Long press to expand and view detailed stats
-- Interactive 3D Touch feedback
-- Color-coded tiers:
-  - ⭐️ Elite (88+ OVR)
-  - 🥇 Gold (83-87 OVR)
-  - 🥈 Silver (79-82 OVR)
-  - 🥉 Bronze (<79 OVR)
+### January 26, 2025
+- Fixed auction creation UI and functionality
+- Added proper modal presentation for create auction screen
+- Implemented toast notifications for better user feedback
+- Added real-time updates for auctions
+- Fixed safe area issues across all screens
 
-### Filtering System
-- Position-based filters:
-  - ⚔️ ATT (Attackers)
-  - 🎯 MID (Midfielders)
-  - 🛡️ DEF (Defenders)
-  - 🧤 GK (Goalkeepers)
-- Tier-based filters
-- Search functionality
-- Multiple sorting options
+## Development
 
-## Getting Started
+### Prerequisites
+- Node.js
+- Expo CLI
+- Supabase account
 
+### Setup
 1. Clone the repository
-   ```bash
-   git clone https://github.com/Atifalin/GhantaPL.git
-   cd GhantaPL
-   ```
+```bash
+git clone https://github.com/Atifalin/GhantaPL.git
+cd GhantaPL
+```
 
 2. Install dependencies
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 3. Set up environment variables
-   - Copy `.env.example` to `.env`
-   - Add your Supabase credentials:
-     ```
-     EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-     EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-     ```
-
-4. Start the development server
-   ```bash
-   npx expo start
-   ```
-
-## Project Structure
-
+```bash
+cp .env.example .env
 ```
-GhantaPL/
-├── app/
-│   ├── (auth)/           # Authentication screens
-│   ├── (tabs)/           # Main app tabs
-│   └── _layout.tsx       # Root layout
-├── components/           # Reusable components
-│   ├── PlayerCard.tsx    # Interactive player card component
-│   └── ...              # Other components
-├── contexts/            # Context providers
-├── lib/                # External service setup
-└── types/              # TypeScript types
+Update the `.env` file with your Supabase credentials.
+
+4. Run the app
+```bash
+npm start
 ```
 
-## Database Schema
+## TODOs and Known Issues
 
-The project uses Supabase with the following main tables:
-- `players`: Stores player information and stats
-- `users`: Manages user accounts
-- `profiles`: Stores user preferences and settings
+### High Priority
+- [ ] Fix error handling in notifications system
+- [ ] Improve real-time subscription cleanup in auctions page
+- [ ] Add proper error boundaries for better error handling
+- [ ] Implement proper loading states for auction operations
+
+### Future Improvements
+- [ ] Add auction history
+- [ ] Implement player statistics
+- [ ] Add team management features
+- [ ] Improve UI/UX for auction bidding
 
 ## Contributing
 
-Feel free to submit issues and enhancement requests!
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Expo](https://expo.dev)
-- [Supabase](https://supabase.com)
-- [React Native](https://reactnative.dev)

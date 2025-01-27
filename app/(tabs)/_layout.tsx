@@ -16,13 +16,14 @@ export default function TabLayout() {
           backgroundColor: isDark ? Colors.dark.background : Colors.light.background,
           borderTopColor: isDark ? '#2D2D2D' : '#e0e0e0',
         },
-        headerShown: true,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <MaterialIcons name="home" size={24} color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -30,6 +31,7 @@ export default function TabLayout() {
         options={{
           title: 'Players',
           tabBarIcon: ({ color }) => <MaterialIcons name="sports-soccer" size={24} color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -37,13 +39,7 @@ export default function TabLayout() {
         options={{
           title: 'Auctions',
           tabBarIcon: ({ color }) => <MaterialIcons name="gavel" size={24} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <MaterialIcons name="explore" size={24} color={color} />,
+          headerShown: false,
         }}
       />
     </Tabs>

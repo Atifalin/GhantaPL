@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, useColorScheme, Pressable, Alert, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, ScrollView, useColorScheme, Pressable, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserPrefs } from '../../contexts/UserPrefsContext';
 import { ThemedView } from '../../components/ThemedView';
@@ -7,7 +7,7 @@ import { ThemedText } from '../../components/ThemedText';
 import { Colors } from '../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase/client';
 
 const EMOJIS = ["😊", "😎", "🤠", "🦁", "🐯", "🐼", "🦊", "🦄", "🐸", "🐵", "🦉", "🦋", "⚽️", "🎮", "🎨", "🎸"];
 
@@ -126,10 +126,79 @@ export default function ProfileModal() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (data) {
+        setUsername(data.username || '');
+        setDisplayName(data.display_name || '');
+        if (data.avatar_emoji) {
+          updatePreferences({ ...preferences, avatar: data.avatar_emoji });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async (newAvatar?: string) => {
+    if (!username || !displayName) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      // First update preferences if we have a new avatar
+      if (newAvatar) {
+        await updatePreferences({ ...preferences, avatar: newAvatar });
+      }
+
+      // Then update the profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user?.id,
+          username,
+          display_name: displayName,
+          avatar_emoji: newAvatar || preferences.avatar,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      Alert.alert('Success', 'Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/(tabs)');
+    try {
+      await signOut();
+      router.push('/(auth)/onboarding');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
   };
 
   const handleClose = () => {
@@ -173,131 +242,152 @@ export default function ProfileModal() {
   };
 
   return (
-    <View 
-      style={[
-        styles.container,
-        { backgroundColor: isDark ? Colors.dark.background : Colors.light.background }
-      ]}
-    >
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Pressable 
-            onPress={() => setShowEmojiPicker(true)}
-            style={[
-              styles.avatarContainer,
-              { backgroundColor: isDark ? '#2D2D2D' : '#f0f0f0' }
-            ]}
-          >
-            <ThemedText style={styles.avatarEmoji}>{preferences.avatar}</ThemedText>
-          </Pressable>
-          <ThemedText type="title" style={styles.name}>{user?.email}</ThemedText>
-        </View>
+    <ThemedView style={styles.container}>
+      <View style={styles.header}>
+        <ThemedText type="title">Profile</ThemedText>
+        <Pressable onPress={handleClose}>
+          <MaterialIcons 
+            name="close" 
+            size={24} 
+            color={isDark ? Colors.dark.text : Colors.light.text} 
+          />
+        </Pressable>
+      </View>
 
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Account</ThemedText>
-          <ProfileButton 
-            title="Change Avatar" 
-            icon="face" 
-            onPress={() => setShowEmojiPicker(true)}
-          />
-          <ProfileButton 
-            title={showChangePassword ? "Cancel Password Change" : "Change Password"}
-            icon="lock"
-            onPress={() => setShowChangePassword(!showChangePassword)}
-          />
-          {showChangePassword && (
-            <View style={styles.passwordForm}>
-              <ThemedView style={styles.inputContainer}>
-                <ThemedText type="default" style={styles.label}>New Password</ThemedText>
-                <ThemedText 
+      <ScrollView style={styles.content}>
+        {profileLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={isDark ? Colors.dark.tint : Colors.light.tint} />
+          </View>
+        ) : (
+          <>
+            <View style={styles.section}>
+              <View style={styles.formGroup}>
+                <ThemedText type="default" style={styles.label}>Username</ThemedText>
+                <TextInput
                   style={[
                     styles.input,
                     { 
-                      backgroundColor: isDark ? '#2D2D2D' : '#fff',
-                      borderColor: isDark ? '#3D3D3D' : '#e0e0e0',
-                      color: isDark ? Colors.dark.text : Colors.light.text
+                      backgroundColor: isDark ? '#2D2D2D' : '#f5f5f5',
+                      color: isDark ? Colors.dark.text : Colors.light.text,
                     }
-                  ]} 
-                  secureTextEntry 
-                  value={newPassword} 
-                  onChangeText={setNewPassword} 
-                  placeholder="Enter new password" 
-                  autoCapitalize="none"
+                  ]}
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="Enter username"
+                  placeholderTextColor={isDark ? '#888' : '#999'}
                 />
-              </ThemedView>
-              <ThemedView style={styles.inputContainer}>
-                <ThemedText type="default" style={styles.label}>Confirm Password</ThemedText>
-                <ThemedText 
+              </View>
+
+              <View style={styles.formGroup}>
+                <ThemedText type="default" style={styles.label}>Display Name</ThemedText>
+                <TextInput
                   style={[
                     styles.input,
                     { 
-                      backgroundColor: isDark ? '#2D2D2D' : '#fff',
-                      borderColor: isDark ? '#3D3D3D' : '#e0e0e0',
-                      color: isDark ? Colors.dark.text : Colors.light.text
+                      backgroundColor: isDark ? '#2D2D2D' : '#f5f5f5',
+                      color: isDark ? Colors.dark.text : Colors.light.text,
                     }
-                  ]} 
-                  secureTextEntry 
-                  value={confirmPassword} 
-                  onChangeText={setConfirmPassword} 
-                  placeholder="Confirm new password" 
-                  autoCapitalize="none"
+                  ]}
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                  placeholder="Enter display name"
+                  placeholderTextColor={isDark ? '#888' : '#999'}
                 />
-              </ThemedView>
-              <ProfileButton 
-                title="Update Password" 
-                icon="check" 
-                onPress={handlePasswordReset}
+              </View>
+
+              <Pressable
+                style={[
+                  styles.saveButton,
+                  savingProfile && styles.saveButtonDisabled
+                ]}
+                onPress={handleUpdateProfile}
+                disabled={savingProfile}
+              >
+                {savingProfile ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <ThemedText style={styles.saveButtonText}>Save Profile</ThemedText>
+                )}
+              </Pressable>
+            </View>
+
+            <View style={styles.section}>
+              <ProfileButton
+                title="Change Avatar"
+                icon="face"
+                onPress={() => setShowEmojiPicker(true)}
+              />
+              <ProfileButton
+                title="Change Password"
+                icon="lock"
+                onPress={() => setShowChangePassword(true)}
+              />
+              {showChangePassword && (
+                <View style={styles.passwordForm}>
+                  <ThemedView style={styles.inputContainer}>
+                    <ThemedText type="default" style={styles.label}>New Password</ThemedText>
+                    <ThemedText 
+                      style={[
+                        styles.input,
+                        { 
+                          backgroundColor: isDark ? '#2D2D2D' : '#fff',
+                          borderColor: isDark ? '#3D3D3D' : '#e0e0e0',
+                          color: isDark ? Colors.dark.text : Colors.light.text
+                        }
+                      ]} 
+                      secureTextEntry 
+                      value={newPassword} 
+                      onChangeText={setNewPassword} 
+                      placeholder="Enter new password" 
+                      autoCapitalize="none"
+                    />
+                  </ThemedView>
+                  <ThemedView style={styles.inputContainer}>
+                    <ThemedText type="default" style={styles.label}>Confirm Password</ThemedText>
+                    <ThemedText 
+                      style={[
+                        styles.input,
+                        { 
+                          backgroundColor: isDark ? '#2D2D2D' : '#fff',
+                          borderColor: isDark ? '#3D3D3D' : '#e0e0e0',
+                          color: isDark ? Colors.dark.text : Colors.light.text
+                        }
+                      ]} 
+                      secureTextEntry 
+                      value={confirmPassword} 
+                      onChangeText={setConfirmPassword} 
+                      placeholder="Confirm new password" 
+                      autoCapitalize="none"
+                    />
+                  </ThemedView>
+                  <ProfileButton 
+                    title="Update Password" 
+                    icon="check" 
+                    onPress={handlePasswordReset}
+                  />
+                </View>
+              )}
+              <ProfileButton
+                title="Sign Out"
+                icon="logout"
+                onPress={handleSignOut}
+                destructive
               />
             </View>
-          )}
-          <ProfileButton title="Notifications" icon="notifications" />
-          <ProfileButton title="Privacy" icon="shield" />
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Preferences</ThemedText>
-          <ProfileButton title="Language" icon="language" />
-          <ProfileButton title="Display" icon="palette" />
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Other</ThemedText>
-          <ProfileButton title="Help" icon="help" />
-          <ProfileButton title="About" icon="info" />
-          <ProfileButton 
-            title="Sign Out" 
-            icon="logout" 
-            onPress={handleSignOut}
-            destructive
-          />
-        </View>
+          </>
+        )}
       </ScrollView>
 
-      <Pressable
-        onPress={handleClose}
-        style={({ pressed }) => [
-          styles.closeButton,
-          {
-            backgroundColor: pressed 
-              ? isDark ? '#2D2D2D' : '#f0f0f0'
-              : isDark ? '#252829' : '#fff',
-            borderColor: isDark ? '#2D2D2D' : '#e0e0e0',
-          }
-        ]}
-      >
-        <MaterialIcons 
-          name="close" 
-          size={24} 
-          color={isDark ? Colors.dark.text : Colors.light.text} 
-        />
-      </Pressable>
-
-      <EmojiPicker 
+      <EmojiPicker
         visible={showEmojiPicker}
         onClose={() => setShowEmojiPicker(false)}
-        onSelect={handleSelectEmoji}
+        onSelect={async (emoji) => {
+          await handleUpdateProfile(emoji);
+          setShowEmojiPicker(false);
+        }}
       />
-    </View>
+    </ThemedView>
   );
 }
 
@@ -305,38 +395,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
   header: {
-    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  avatarEmoji: {
-    fontSize: 36,
-    textAlign: 'center',
-    lineHeight: 80,
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: '600',
+  content: {
+    flex: 1,
   },
   section: {
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
-  sectionTitle: {
-    fontSize: 18,
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
     fontWeight: '600',
-    marginBottom: 12,
+  },
+  input: {
+    height: 48,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  saveButton: {
+    backgroundColor: Colors.light.tint,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   button: {
     flexDirection: 'row',
@@ -357,22 +466,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -417,15 +510,5 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 12,
-  },
-  label: {
-    marginBottom: 8,
-    opacity: 0.7,
-  },
-  input: {
-    fontSize: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 8,
   },
 });

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
 import { Button, Input, Text } from '@rneui/themed';
 import { router } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase/client';
 import LoadingScreen from '../../components/LoadingScreen';
 import { useAuth } from '../../contexts/AuthContext';
+import { initializeDefaultPlayers } from '../../lib/supabase/defaultPlayers';
 
 export default function SignUpScreen() {
   const { loading: authLoading } = useAuth();
@@ -34,14 +35,22 @@ export default function SignUpScreen() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
+      if (signUpError) {
+        Alert.alert('Error', signUpError.message);
+        return;
+      }
+
+      if (signUpData.user) {
+        // Initialize default players for the new user
+        await initializeDefaultPlayers(signUpData.user.id);
+      }
+
       Alert.alert(
         'Check your email',
         'We have sent you a confirmation link to your email address.',
@@ -52,8 +61,11 @@ export default function SignUpScreen() {
           },
         ]
       );
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

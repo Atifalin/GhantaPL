@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, ActivityIndicator, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, FlatList, StyleSheet, ActivityIndicator, Pressable, TextInput, ScrollView, SafeAreaView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -364,16 +364,18 @@ export default function PlayersScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <FlatList
-        data={filteredPlayers}
-        renderItem={renderPlayer}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        refreshing={loading}
-        onRefresh={fetchPlayers}
-      />
-    </ThemedView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ThemedView style={styles.container}>
+        <FlatList
+          data={filteredPlayers}
+          renderItem={renderPlayer}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          refreshing={loading}
+          onRefresh={fetchPlayers}
+        />
+      </ThemedView>
+    </SafeAreaView>
   );
 }

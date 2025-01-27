@@ -1,19 +1,30 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { AppState } from 'react-native';
+import { Database } from '../../types/database.types';
 
-const supabaseUrl = 'https://clpcmsgqjqakdythfbpi.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscGNtc2dxanFha2R5dGhmYnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3MDIzNzcsImV4cCI6MjA1MzI3ODM3N30.4tAFHOZ6K5jd194VkG1z6ZAPoBNlFs39QtNT0j49fRU';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false
-    },
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    }
   }
-);
+});
+
+// Reconnect realtime when app becomes active
+AppState.addEventListener('change', (nextAppState) => {
+  if (nextAppState === 'active') {
+    console.log('App became active, reconnecting realtime...');
+    supabase.realtime.connect();
+  }
+});
