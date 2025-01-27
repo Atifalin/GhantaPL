@@ -4,6 +4,7 @@ import { ThemedText } from './ThemedText';
 import { Player } from '../types/player';
 import { Colors } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { calculateMinBid } from '../utils/bidCalculations';
 
 interface PlayerCardProps {
   player: Player;
@@ -100,28 +101,33 @@ export default function PlayerCard({ player, onSelect, isSelected = false }: Pla
       onLongPress={handleLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      delayLongPress={200}
+      style={({ pressed }) => [
+        styles.pressable,
+        { opacity: pressed ? 0.9 : 1 },
+      ]}
     >
       <Animated.View style={[
         styles.card,
         { 
-          backgroundColor: isDark ? Colors.dark.background : Colors.light.background,
-          transform: [{ scale: scaleAnim }] 
+          backgroundColor: isDark ? '#1C1C1E' : '#fff',
+          transform: [{ scale: scaleAnim }],
+          borderColor: isSelected ? (isDark ? '#4A9EFF' : '#2089dc') : 'transparent',
+          borderWidth: isSelected ? 2 : 0,
         }
       ]}>
         <View style={styles.header}>
-          <View style={styles.mainInfo}>
-            <ThemedText type="subtitle" style={styles.name}>{player.name}</ThemedText>
-            <View style={styles.ratingContainer}>
-              <View style={[styles.ratingBadge, { backgroundColor: tierColor }]}>
-                <ThemedText type="subtitle" style={styles.rating}>{player.ovr}</ThemedText>
-              </View>
-              <ThemedText type="default" style={[styles.position, { color: isDark ? '#9BA1A6' : '#666' }]}>
-                {player.position}
-              </ThemedText>
+          <View style={styles.headerLeft}>
+            <ThemedText type="title" style={styles.name}>{player.name}</ThemedText>
+            <View style={styles.infoContainer}>
+              <ThemedText type="default" style={styles.position}>{player.position}</ThemedText>
+              <ThemedText type="default" style={[styles.tier, { color: tierColor }]}>{tier}</ThemedText>
+              <ThemedText type="default" style={styles.minBid}>{calculateMinBid(tier)} GC</ThemedText>
             </View>
           </View>
-          <View style={styles.rightInfo}>
+          <View style={styles.headerRight}>
+            <View style={[styles.ovrBadge, { backgroundColor: tierColor }]}>
+              <ThemedText type="title" style={styles.ovrText}>{player.ovr}</ThemedText>
+            </View>
             <View style={styles.teamInfo}>
               <ThemedText type="small" style={[styles.teamName, { color: isDark ? '#9BA1A6' : '#666' }]}>
                 {player.team}
@@ -186,6 +192,9 @@ export default function PlayerCard({ player, onSelect, isSelected = false }: Pla
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    flex: 1,
+  },
   card: {
     borderRadius: 12,
     padding: 12,
@@ -200,40 +209,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  mainInfo: {
+  headerLeft: {
     flex: 1,
   },
-  rightInfo: {
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
   },
-  teamInfo: {
-    alignItems: 'flex-end',
-  },
-  selectedIcon: {
-    alignSelf: 'center',
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   name: {
     fontSize: 16,
     marginBottom: 4,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  position: {
+    fontSize: 14,
   },
-  ratingBadge: {
+  tier: {
+    fontSize: 14,
+  },
+  minBid: {
+    fontSize: 14,
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  ovrBadge: {
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  rating: {
+  ovrText: {
     fontSize: 16,
     color: '#fff',
   },
-  position: {
-    fontSize: 14,
+  teamInfo: {
+    alignItems: 'flex-end',
   },
   teamName: {
     fontSize: 12,
@@ -241,6 +258,9 @@ const styles = StyleSheet.create({
   },
   nation: {
     fontSize: 12,
+  },
+  selectedIcon: {
+    alignSelf: 'center',
   },
   details: {
     marginTop: 12,
