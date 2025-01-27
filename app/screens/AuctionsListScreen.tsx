@@ -327,8 +327,7 @@ export default function AuctionsListScreen() {
         styles.header,
         { backgroundColor: isDark ? '#1A1D1E' : '#f9f9f9' }
       ]}>
-        <View style={styles.headerTop}>
-          <ThemedText type="title" style={styles.title}>Auctions</ThemedText>
+        <View style={[styles.headerTop, { justifyContent: 'center' }]}>
           <TouchableOpacity
             style={[
               styles.createButton,
@@ -425,10 +424,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '700',
   },
   searchContainer: {
     flexDirection: 'row',

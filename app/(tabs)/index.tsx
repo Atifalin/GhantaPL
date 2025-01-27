@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, View, ScrollView, useColorScheme, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserPrefs } from '../../contexts/UserPrefsContext';
 import { usePresence } from '../../hooks/usePresence';
@@ -97,7 +96,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <ThemedView style={styles.container}>
       <ScrollView style={[
         styles.scrollView,
         { backgroundColor: isDark ? Colors.dark.background : Colors.light.background }
@@ -189,13 +188,14 @@ export default function HomeScreen() {
           </Card>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
