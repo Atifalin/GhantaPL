@@ -12,6 +12,8 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { UserPrefsProvider } from '../contexts/UserPrefsContext';
 import { ToastProvider } from './context/ToastContext';
 import { RealtimeProvider } from './context/RealtimeContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StyleSheet } from 'react-native';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -76,14 +78,22 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <UserPrefsProvider>
-        <ToastProvider>
-          <RealtimeProvider>
-            <RootLayoutNav />
-          </RealtimeProvider>
-        </ToastProvider>
-      </UserPrefsProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <AuthProvider>
+        <UserPrefsProvider>
+          <ToastProvider>
+            <RealtimeProvider>
+              <RootLayoutNav />
+            </RealtimeProvider>
+          </ToastProvider>
+        </UserPrefsProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

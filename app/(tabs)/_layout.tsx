@@ -49,6 +49,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <MaterialIcons name="gavel" size={24} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="teams"
+        options={{
+          title: 'Teams',
+          tabBarIcon: ({ color }) => <MaterialIcons name="group" size={24} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

@@ -1,135 +1,75 @@
-# GhantaPL
+# GhantaPL - FIFA Player Auction Platform
 
-A FIFA auction platform built with React Native and Supabase.
+A mobile app for conducting FIFA player auctions with friends. Built with React Native, Expo, and Supabase.
 
 ## Features
 
-- 🎮 Real-time auction system
-- 👥 Player management
-- 🔄 Live updates and notifications
-- 🌓 Dark mode support
-- 🔒 Secure authentication
+### Auction System
+- Real-time auction updates using Supabase
+- Live bidding with automatic bid validation
+- Auction history and player statistics
+- Wallet management for users
 
-## Recent Updates
+### Team Management
+- Interactive team formation display (442, 433, 352, etc.)
+- Drag-and-drop player positioning
+- Visual player position indicators (GK, LB, ST, etc.)
+- Team history tracking (current, past, pending)
 
-### January 26, 2025
-- Fixed auction creation UI and functionality
-- Added proper modal presentation for create auction screen
-- Implemented toast notifications for better user feedback
-- Added real-time updates for auctions
-- Fixed safe area issues across all screens
+### Player Database
+- Comprehensive FIFA player database
+- Player ratings and statistics
+- Position-based filtering and search
+- Price history and trends
 
-## Development
+## Tech Stack
+- React Native / Expo
+- TypeScript
+- Supabase (PostgreSQL + Real-time)
+- React Native Reanimated
 
-### Prerequisites
-- Node.js
-- Expo CLI
-- Supabase account
+## Getting Started
 
-### Setup
-1. Clone the repository
+1. Clone the repository:
 ```bash
-git clone https://github.com/Atifalin/GhantaPL.git
+git clone https://github.com/yourusername/GhantaPL.git
 cd GhantaPL
 ```
 
-2. Install dependencies
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Set up environment variables
+3. Set up environment variables:
 ```bash
 cp .env.example .env
-```
-Update the `.env` file with your Supabase credentials.
-
-4. Run database migrations
-```bash
-supabase db push
+# Add your Supabase credentials
 ```
 
-5. Run the app
+4. Start the development server:
 ```bash
 npm start
 ```
 
-## Database Migrations
+## Database Schema
 
-All migrations are stored in `supabase/migrations/`. Here's a list of available migrations in order:
+The app uses the following main tables:
+- `players`: FIFA player database
+- `auctions`: Active and past auctions
+- `rosters`: User teams and formations
+- `playing_xi`: Starting lineup configurations
 
-### Core Schema
-1. `20250126_001_initial_schema.sql`
-   - Creates initial tables (users, profiles, players)
-   - Sets up basic relationships
-   - Adds essential indexes
-
-2. `20250126_002_add_auction_tables.sql`
-   - Creates auctions and auction_participants tables
-   - Adds foreign key relationships
-   - Sets up auction status enum
-
-### Security and Access Control
-3. `20250126_003_setup_rls.sql`
-   - Enables Row Level Security (RLS)
-   - Sets up basic access policies
-   - Configures user-based permissions
-
-4. `20250126_004_add_delete_policies.sql`
-   - Adds deletion policies for auctions
-   - Sets up cascade delete behavior
-   - Updates RLS for deletion
-
-### Real-time Features
-5. `20250126_005_enable_realtime.sql`
-   - Enables real-time functionality
-   - Configures publication for relevant tables
-   - Sets up change notification triggers
-
-### Auction System Enhancements
-6. `20250126_006_add_auction_functions.sql`
-   - Adds stored procedures for auction operations
-   - Creates triggers for auction state management
-   - Sets up auction cleanup functions
-
-7. `20250126_007_add_auto_start.sql`
-   - Adds auto_start column to auctions
-   - Updates RLS policies
-   - Modifies host_id constraints
-
-To apply migrations:
-1. Make sure you have Supabase CLI installed
-2. Run `supabase db reset` for a fresh start
-3. Or run `supabase db push` to apply new migrations
-
-### Migration Notes
-- Always backup your database before running migrations
-- Migrations are applied in order based on the timestamp prefix
-- Test migrations in a development environment first
-- Some migrations may require manual data cleanup
-
-## TODOs and Known Issues
-
-### High Priority
-- [ ] Fix error handling in notifications system
-- [ ] Improve real-time subscription cleanup in auctions page
-- [ ] Add proper error boundaries for better error handling
-- [ ] Implement proper loading states for auction operations
-
-### Future Improvements
-- [ ] Add auction history
-- [ ] Implement player statistics
-- [ ] Add team management features
-- [ ] Improve UI/UX for auction bidding
+For detailed schema information, check `supabase/migrations/`.
 
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
