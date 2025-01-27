@@ -24,4 +24,7 @@ export type AuctionParticipant = {
   user_id: string;
   user?: Profile;
   joined_at: string;
+  remaining_budget: number;
+  initial_budget: number;
+  players_won: number;
 };

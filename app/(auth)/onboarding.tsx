@@ -100,7 +100,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 80, // Increased bottom padding
+    marginTop: 'auto', // Push to bottom but respect content
   },
   dots: {
     flexDirection: 'row',

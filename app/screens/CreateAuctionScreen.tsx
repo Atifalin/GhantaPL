@@ -28,27 +28,43 @@ export default function CreateAuctionScreen() {
       return;
     }
 
+    const budgetValue = parseFloat(budget);
+    if (isNaN(budgetValue) || budgetValue <= 0) {
+      showToast('Please enter a valid budget', 'error');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      const budgetInt = Math.round(budgetValue);
+      console.log('Creating auction with budget:', budgetInt, 'Type:', typeof budgetInt);
+
+      const { data, error } = await supabase
         .from('auctions')
         .insert([
           {
             name: auctionName,
-            budget_per_player: parseFloat(budget),
+            budget_per_player: budgetInt,
             start_time: startTime.toISOString(),
             auto_start: autoStart,
             status: 'pending',
             created_by: user.id,
-            host_id: user.id
+            host_id: user.id,
+            total_players: 0,
+            completed_players: 0,
+            skipped_players: 0,
+            no_bid_count: 0
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
 
+      console.log('Created auction with data:', data);
       showToast('Auction created successfully!', 'success');
       router.back();
     } catch (error: any) {

@@ -10,7 +10,7 @@ export function ThemedView(props: React.ComponentProps<typeof View>) {
 
 export function ThemedText(props: React.ComponentProps<typeof Text>) {
   const colorScheme = useColorScheme();
-  const color = colorScheme === 'dark' ? Colors.dark.text : Colors.light.text;
+  const color = colorScheme === 'dark' ? '#fff' : Colors.light.text;
 
   return <Text style={[{ color }, props.style]} {...props} />;
 }

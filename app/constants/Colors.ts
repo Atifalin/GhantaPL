@@ -1,5 +1,5 @@
 const tintColorLight = '#2f95dc';
-const tintColorDark = '#fff';
+const tintColorDark = '#2f95dc'; // Changed from '#fff' to keep the blue color in dark mode
 
 export default {
   light: {

@@ -20,8 +20,9 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
+import { useToast } from '../../app/context/ToastContext';
 import { format, parseISO } from 'date-fns';
+import { joinAuction } from '../../lib/supabase/auctions';
 
 interface Profile {
   id: string;
@@ -95,6 +96,7 @@ const AuctionCard = ({
   const [joining, setJoining] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const isParticipant = useMemo(() => {
     return item.auction_participants?.some(p => p.user_id === user?.id);
@@ -112,18 +114,17 @@ const AuctionCard = ({
 
     setJoining(true);
     try {
-      const { error } = await supabase
-        .from('auction_participants')
-        .insert({
-          auction_id: item.id,
-          user_id: user?.id,
-        });
-
-      if (error) throw error;
+      const success = await joinAuction(item.id);
+      if (!success) throw new Error('Failed to join auction');
       onUpdate();
+      showToast('Successfully joined auction', 'success');
     } catch (error) {
       console.error('Error joining auction:', error);
-      Alert.alert('Error', 'Failed to join auction');
+      if (error instanceof Error) {
+        showToast(error.message, 'error');
+      } else {
+        showToast('Failed to join auction', 'error');
+      }
     } finally {
       setJoining(false);
     }
@@ -161,6 +162,10 @@ const AuctionCard = ({
         },
       ]
     );
+  };
+
+  const handleViewLiveAuction = () => {
+    router.push(`/auctions/${item.id}`);
   };
 
   return (
@@ -225,7 +230,7 @@ const AuctionCard = ({
           </ThemedText>
         </View>
       </View>
-      {item.status === 'pending' && (
+      {item.status === 'pending' ? (
         <TouchableOpacity
           style={styles.joinButton}
           onPress={handleJoin}
@@ -238,6 +243,15 @@ const AuctionCard = ({
               {isParticipant ? 'Already Joined' : 'Join Auction'}
             </ThemedText>
           )}
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.joinButton}
+          onPress={handleViewLiveAuction}
+        >
+          <ThemedText type="default" style={styles.joinButtonText}>
+            View Live Auction
+          </ThemedText>
         </TouchableOpacity>
       )}
     </Pressable>

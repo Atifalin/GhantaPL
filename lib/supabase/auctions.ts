@@ -83,33 +83,109 @@ export async function joinAuction(auctionId: string): Promise<boolean> {
 
     if (!profile) throw new Error('Profile not found');
 
+    // Get auction details to get budget_per_player
+    console.log('Fetching auction with ID:', auctionId);
+    
+    // First verify the auction exists and get its budget
+    const { data: auction, error: auctionError } = await supabase
+      .from('auctions')
+      .select('*')
+      .eq('id', auctionId)
+      .single();
+
+    console.log('Raw auction data:', auction);
+
+    if (auctionError) {
+      console.error('Error fetching auction:', auctionError);
+      throw new Error('Failed to fetch auction details');
+    }
+
+    if (!auction) {
+      throw new Error('Auction not found');
+    }
+
+    console.log('Got auction, checking profile...');
+    
+    // Get user's profile again to ensure we have latest data
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    console.log('Profile data:', profileData);
+    console.log('Profile error:', profileError);
+
+    if (profileError || !profileData) {
+      console.error('Profile error:', profileError);
+      throw new Error('Failed to get profile');
+    }
+
+    const budgetValue = auction.budget_per_player;
+    console.log('Budget value from DB:', budgetValue, 'Type:', typeof budgetValue);
+
+    if (budgetValue == null || budgetValue === undefined) {
+      throw new Error('Auction has no budget set');
+    }
+
+    // Ensure budget is a valid integer
+    const budget = Math.floor(Number(budgetValue));
+    if (isNaN(budget) || budget <= 0) {
+      console.error('Invalid budget:', budgetValue);
+      throw new Error('Invalid budget value in auction');
+    }
+
+    console.log('Final budget value to use:', budget);
+
     // Check if user is already a participant
-    const { data: existingParticipant } = await supabase
+    const { data: existingParticipant, error: existingError } = await supabase
       .from('auction_participants')
       .select('*')
       .eq('auction_id', auctionId)
-      .eq('user_id', profile.id)
-      .single();
+      .eq('user_id', profileData.id)
+      .maybeSingle();
+
+    console.log('Existing participant check:', existingParticipant);
+    console.log('Existing check error:', existingError);
 
     if (existingParticipant) {
       throw new Error('You are already participating in this auction');
     }
 
-    const { error } = await supabase
-      .from('auction_participants')
-      .insert({
-        auction_id: auctionId,
-        user_id: profile.id,
-      });
+    // Create the participant object
+    const participant = {
+      auction_id: auctionId,
+      user_id: profileData.id,
+      initial_budget: budget,
+      remaining_budget: budget,
+      players_won: 0
+    } as const;
 
-    if (error) throw error;
+    console.log('Inserting participant with data:', JSON.stringify(participant));
+
+    // Insert the participant
+    const { data: insertedParticipant, error: insertError } = await supabase
+      .from('auction_participants')
+      .insert([participant])
+      .select()
+      .single();
+
+    console.log('Insert response:', insertedParticipant);
+    console.log('Insert error:', insertError);
+
+    if (insertError) {
+      console.error('Failed to insert participant. Error:', insertError);
+      throw insertError;
+    }
+
+    console.log('Successfully created participant:', insertedParticipant);
     return true;
   } catch (error) {
     console.error('Error joining auction:', error);
     if (error instanceof Error) {
-      Alert.alert('Error', error.message);
+      // Alert.alert('Error', error.message);
     } else {
-      Alert.alert('Error', 'Failed to join auction');
+      // Alert.alert('Error', 'Failed to join auction');
     }
     return false;
   }
@@ -232,9 +308,9 @@ export async function deleteAuction(auctionId: string): Promise<boolean> {
   } catch (error) {
     console.error('Error deleting auction:', error);
     if (error instanceof Error) {
-      Alert.alert('Error', error.message);
+      // Alert.alert('Error', error.message);
     } else {
-      Alert.alert('Error', 'Failed to delete auction');
+      // Alert.alert('Error', 'Failed to delete auction');
     }
     return false;
   }
