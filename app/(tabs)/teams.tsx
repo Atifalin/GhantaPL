@@ -23,6 +23,8 @@ import { Player } from '../../types/player';
 import { useUserTeam } from '../hooks/useUserTeam';
 import ViewShot from 'react-native-view-shot';
 import { useToast } from '../context/ToastContext';
+import { getTeamAnalysis } from '../../utils/teamAnalysis';
+import AIRatingDialog from '../components/AIRatingDialog';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const FIELD_WIDTH = Math.min(SCREEN_WIDTH - 32, 320);
@@ -189,6 +191,9 @@ const RosterCard: React.FC<RosterCardProps> = ({ formation: initialFormation = '
   } | null>(null);
   const [assignedPlayersList, setAssignedPlayersList] = useState<AssignedPlayerData[]>([]);
   const [reservePlayersList, setReservePlayersList] = useState<PlayerData[]>([]);
+  const [isAIDialogVisible, setIsAIDialogVisible] = useState(false);
+  const [aiRating, setAiRating] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const getBasePosition = useCallback((detailedPosition: string) => {
     if (['GK'].includes(detailedPosition)) return 'GK';
@@ -472,6 +477,38 @@ const RosterCard: React.FC<RosterCardProps> = ({ formation: initialFormation = '
     }
   }, [reservePlayersList, assignedPlayersList, wonPlayers, getBasePosition, setWonPlayers]);
 
+  const handleAnalyzeTeam = async () => {
+    try {
+      setIsAIDialogVisible(true);
+      setIsAnalyzing(true);
+      setAiRating(null);
+
+      const playersWithPositions = assignedPlayersList
+        .filter(ap => ap.player)
+        .map(ap => ({
+          player: {
+            name: ap.player!.name,
+            ovr: ap.player!.ovr,
+            position: ap.player!.position,
+          },
+          position: ap.position.position,
+        }));
+
+      const analysis = await getTeamAnalysis(playersWithPositions);
+      
+      if (analysis.success) {
+        setAiRating(analysis.message);
+      } else {
+        throw new Error(analysis.error);
+      }
+    } catch (error) {
+      console.error('Error analyzing team:', error);
+      setAiRating('Sorry, there was an error analyzing your team. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleScreenshot = async () => {
     try {
       const ref = screenshotRef.current;
@@ -570,6 +607,12 @@ const RosterCard: React.FC<RosterCardProps> = ({ formation: initialFormation = '
             </Pressable>
             <Pressable 
               style={styles.actionButton}
+              onPress={handleAnalyzeTeam}
+            >
+              <MaterialIcons name="psychology" size={24} color="#2196f3" />
+            </Pressable>
+            <Pressable 
+              style={styles.actionButton}
               onPress={handleScreenshot}
             >
               <MaterialIcons name="camera-alt" size={24} color="#2196f3" />
@@ -599,6 +642,13 @@ const RosterCard: React.FC<RosterCardProps> = ({ formation: initialFormation = '
           </ScrollView>
         </View>
       </View>
+
+      <AIRatingDialog
+        visible={isAIDialogVisible}
+        onClose={() => setIsAIDialogVisible(false)}
+        loading={isAnalyzing}
+        rating={aiRating}
+      />
     </GestureHandlerRootView>
   );
 };

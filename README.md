@@ -1,6 +1,41 @@
-# GhantaPL - FIFA Player Auction Platform
+# GhantaPL
 
-A mobile app for conducting FIFA player auctions with friends. Built with React Native, Expo, and Supabase.
+A fantasy football auction app with AI-powered team analysis.
+
+## Environment Setup
+
+1. Copy the environment template:
+```bash
+cp .env.example .env
+```
+
+2. Fill in your environment variables in `.env`:
+- `EXPO_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `EXPO_PUBLIC_CLAUDE_API_KEY`: Your Anthropic Claude API key
+- `EXPO_PUBLIC_CLAUDE_API_URL`: Claude API URL (default is https://api.anthropic.com/v1)
+
+⚠️ **Important**: Never commit the `.env` file to version control. It contains sensitive API keys and should be kept private.
+
+## Development
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npx expo start
+```
+
+## Features
+
+- Fantasy football auction system
+- Team formation builder with drag-and-drop
+- AI-powered team analysis using Claude
+- Screenshot and share your team
+- Auto-placement of players based on position
 
 ## Documentation
 - For a comprehensive guide on how to use the app, check out our [User Guide](docs/USER_GUIDE.md)
