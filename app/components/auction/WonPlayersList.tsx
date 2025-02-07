@@ -43,8 +43,8 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
           player_id,
           winner_id,
           winning_bid,
-          player:players!inner(*),
-          winner:profiles!inner(display_name, avatar_emoji)
+          player:players(*),
+          winner:profiles(display_name, avatar_emoji)
         `)
         .eq('auction_id', auctionId)
         .returns<WonPlayer[]>();

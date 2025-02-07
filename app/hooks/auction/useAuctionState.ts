@@ -35,11 +35,11 @@ export function useAuctionState(id: string) {
             username,
             display_name
           ),
-          current_player:current_player_id!inner (
+          current_player:current_player_id (
             *,
             tier:ovr::text
           ),
-          auction_participants!inner (
+          auction_participants (
             user_id,
             remaining_budget,
             profiles:user_id (
