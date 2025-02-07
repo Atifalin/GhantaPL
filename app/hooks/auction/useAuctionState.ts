@@ -35,8 +35,9 @@ export function useAuctionState(id: string) {
             username,
             display_name
           ),
-          current_player:current_player_id (
-            *
+          current_player:current_player_id!inner (
+            *,
+            tier:ovr::text
           ),
           auction_participants!inner (
             user_id,
@@ -59,6 +60,16 @@ export function useAuctionState(id: string) {
           throw auctionError;
         }
         return;
+      }
+
+      // Calculate tier based on ovr if current player exists
+      if (auctionData.current_player) {
+        const ovr = auctionData.current_player.ovr;
+        auctionData.current_player.tier = 
+          ovr >= 85 ? 'Elite' :
+          ovr >= 80 ? 'Gold' :
+          ovr >= 75 ? 'Silver' :
+          'Bronze';
       }
 
       // Get selected players count (total players)
