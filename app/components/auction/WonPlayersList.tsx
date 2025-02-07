@@ -33,6 +33,27 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
 
   useEffect(() => {
     fetchWonPlayers();
+
+    // Subscribe to changes
+    const channel = supabase.channel('auction_winners_' + auctionId)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'auction_winners',
+          filter: `auction_id=eq.${auctionId}`,
+        },
+        () => {
+          console.log('Won players changed, refreshing...');
+          fetchWonPlayers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, [auctionId]);
 
   const fetchWonPlayers = async () => {
@@ -47,6 +68,7 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
           winner:profiles(display_name, avatar_emoji)
         `)
         .eq('auction_id', auctionId)
+        .order('created_at', { ascending: false })
         .returns<WonPlayer[]>();
 
       if (error) throw error;
