@@ -2,6 +2,13 @@ import { supabase } from './client';
 import { Player } from '../../types/player';
 import { getSelectedPlayers } from './selectedPlayers';
 
+function determinePlayerTier(ovr: number): Player['tier'] {
+  if (ovr >= 85) return 'Elite';
+  if (ovr >= 80) return 'Gold';
+  if (ovr >= 75) return 'Silver';
+  return 'Bronze';
+}
+
 export async function getRandomPlayer(auctionId: string) {
   try {
     console.log('getRandomPlayer called for auction:', auctionId);
@@ -88,8 +95,15 @@ export async function getRandomPlayer(auctionId: string) {
     }
     console.log('Total players found:', data.length);
 
+    // Add tier information to each player
+    const playersWithTier = data.map(player => ({
+      ...player,
+      tier: determinePlayerTier(player.ovr)
+    }));
+    console.log('Players with tier:', playersWithTier.map(p => ({ name: p.name, ovr: p.ovr, tier: p.tier })));
+
     // Filter out used players and twice-skipped players
-    const availablePlayers = data.filter(player => 
+    const availablePlayers = playersWithTier.filter(player => 
       !usedPlayerIds.includes(player.id) && 
       !twiceSkippedPlayerIds.includes(player.id)
     );
@@ -103,7 +117,12 @@ export async function getRandomPlayer(auctionId: string) {
     // Select a random player from the available ones
     const randomIndex = Math.floor(Math.random() * availablePlayers.length);
     const selectedPlayer = availablePlayers[randomIndex];
-    console.log('Selected player:', { id: selectedPlayer.id, name: selectedPlayer.name });
+    console.log('Selected player:', { 
+      id: selectedPlayer.id, 
+      name: selectedPlayer.name, 
+      ovr: selectedPlayer.ovr,
+      tier: selectedPlayer.tier 
+    });
 
     // Check if this player was skipped before
     const previousSkip = skippedPlayers?.find(sp => sp.player_id === selectedPlayer.id);

@@ -7,6 +7,7 @@ import { getRandomPlayer } from '../../../lib/supabase/auctionPlayers';
 import { getSelectedPlayers } from '../../../lib/supabase/selectedPlayers';
 import type { SelectedPlayer } from '../../../lib/supabase/selectedPlayers';
 import * as Haptics from 'expo-haptics';
+import { calculateMinBid } from '../../../utils/bidCalculations';
 
 export function useAuctionActions(
   id: string,
@@ -117,7 +118,10 @@ export function useAuctionActions(
     // First verify the auction is still active and the user can bid
     const { data: currentAuction, error: fetchError } = await supabase
       .from('auctions')
-      .select('*')
+      .select(`
+        *,
+        current_player:current_player_id (*)
+      `)
       .eq('id', id)
       .single();
 
@@ -129,7 +133,18 @@ export function useAuctionActions(
       throw new Error('Auction is no longer active');
     }
 
-    if (currentAuction.current_bid >= amount) {
+    // Get the minimum bid for the current player
+    const playerMinBid = calculateMinBid(currentAuction.current_player.tier);
+    console.log('Minimum bid for player:', playerMinBid);
+
+    // If this is the first bid, check against player's minimum bid
+    if (currentAuction.current_bid === 0 && amount < playerMinBid) {
+      console.log('Bid rejected - below minimum bid:', { amount, minBid: playerMinBid });
+      throw new Error(`Bid must be at least ${playerMinBid} GC for ${currentAuction.current_player.tier} players`);
+    }
+
+    // If there's already a bid, check if the new bid is high enough
+    if (currentAuction.current_bid > 0 && currentAuction.current_bid >= amount) {
       console.log('Bid rejected - current bid:', currentAuction.current_bid, 'new bid:', amount);
       throw new Error('Bid must be higher than current bid');
     }

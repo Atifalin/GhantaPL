@@ -6,6 +6,7 @@ import PlayerCard from '../../../components/PlayerCard';
 import Timer from '../Timer';
 import Button from '../Button';
 import { Player } from '../../../types/player';
+import { calculateMinBid } from '../../../utils/bidCalculations';
 
 interface BiddingCardProps {
   player: Player & { wasSkippedBefore?: boolean; skipCount?: number };
@@ -43,7 +44,10 @@ export default function BiddingCard({
   const isDark = colorScheme === 'dark';
 
   const getMinBid = () => {
-    if (currentBid === 0) return 5;
+    console.log('Player tier:', player.tier, typeof player.tier);
+    const playerMinBid = calculateMinBid(player.tier);
+    console.log('Calculated min bid:', playerMinBid);
+    if (currentBid === 0) return playerMinBid;
     return currentBid + 5;
   };
 
@@ -87,6 +91,14 @@ export default function BiddingCard({
       </View>
       
       <View style={styles.bidInfo}>
+        <View style={styles.bidRow}>
+          <ThemedText style={[styles.currentBid, { color: colors.text }]}>
+            Min Bid:
+          </ThemedText>
+          <ThemedText style={[styles.bidAmount, { color: colors.text }]}>
+            {calculateMinBid(player.tier)} GC
+          </ThemedText>
+        </View>
         {currentBid > 0 && (
           <View style={styles.bidRow}>
             <ThemedText style={[styles.currentBid, { color: colors.text }]}>

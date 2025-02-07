@@ -9,6 +9,7 @@ export interface Player {
   dri: number;
   def: number;
   phy: number;
+  tier: 'Elite' | 'Gold' | 'Silver' | 'Bronze';
   // Detailed stats
   acceleration: number;
   sprint_speed: number;
