@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, useColorScheme } from 'react-native';
 import { ThemedText, ThemedView } from '../Themed';
-import Colors from '../../constants/Colors';
+import { Colors } from '../../constants/Colors';
 import PlayerCard from '../../../components/PlayerCard';
 import Timer from '../Timer';
 import Button from '../Button';
-import { Player } from '../../types/player';
+import { Player } from '../../../types/player';
 
 interface BiddingCardProps {
-  player: Player;
+  player: Player & { wasSkippedBefore?: boolean; skipCount?: number };
   currentBid: number;
   isPaused: boolean;
   userBudget: number;
@@ -17,6 +17,7 @@ interface BiddingCardProps {
   isHost: boolean;
   noBidCount: number;
   totalParticipants: number;
+  lastBidTime: string;
 }
 
 export default function BiddingCard({ 
@@ -28,10 +29,17 @@ export default function BiddingCard({
   onTimerComplete,
   isHost,
   noBidCount,
-  totalParticipants
+  totalParticipants,
+  lastBidTime
 }: BiddingCardProps) {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const baseColors = Colors[colorScheme ?? 'light'];
+  const colors = {
+    ...baseColors,
+    warning: '#FFCC00',
+    error: '#FF3B30',
+    border: colorScheme === 'dark' ? '#404040' : '#E5E5EA'
+  };
   const isDark = colorScheme === 'dark';
 
   const getMinBid = () => {
@@ -48,10 +56,29 @@ export default function BiddingCard({
     <ThemedView style={[
       styles.card, 
       { 
-        borderColor: isDark ? '#404040' : colors.border,
-        backgroundColor: colors.background 
+        borderColor: colors.border,
+        backgroundColor: colors.card 
       }
     ]}>
+      {player.wasSkippedBefore && (
+        <View style={[
+          styles.skippedBanner,
+          {
+            backgroundColor: player.skipCount === 1 ? colors.warning : colors.error,
+          }
+        ]}>
+          <ThemedText style={styles.skippedBannerText}>
+            {player.skipCount === 1 ? '⚠️ Skipped Once' : '⛔️ Skipped Twice'}
+          </ThemedText>
+          <ThemedText style={styles.skippedBannerSubtext}>
+            {player.skipCount === 1 
+              ? 'One more skip and this player will be excluded'
+              : 'This player will be excluded after this round'
+            }
+          </ThemedText>
+        </View>
+      )}
+
       <View style={styles.playerCardContainer}>
         <PlayerCard 
           player={player}
@@ -83,7 +110,8 @@ export default function BiddingCard({
           onComplete={onTimerComplete}
           isPaused={isPaused}
           style={styles.timer}
-          key={player.id} // Reset timer when player changes
+          lastBidTime={lastBidTime}
+          key={`${player.id}-${lastBidTime}`}
         />
       </View>
 
@@ -137,6 +165,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   playerCardContainer: {
+    marginTop: 48,
     marginBottom: 16,
   },
   bidInfo: {
@@ -178,5 +207,27 @@ const styles = StyleSheet.create({
   pausedText: {
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  skippedBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+    zIndex: 1,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  skippedBannerText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#000000',
+  },
+  skippedBannerSubtext: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 2,
+    color: '#000000',
   },
 });

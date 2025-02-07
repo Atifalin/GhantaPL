@@ -11,11 +11,18 @@ export type Auction = {
   name: string;
   host_id: string;
   host?: Profile;
-  status: 'pending' | 'active' | 'completed';
+  status: 'pending' | 'active' | 'completed' | 'cancelled' | 'paused';
   start_time: string;
   budget_per_player: number;
   created_at: string;
   participants?: AuctionParticipant[];
+  current_bid: number;
+  current_bidder_id: string | null;
+  current_player_id: string | null;
+  completed_players: number;
+  skipped_players: number;
+  no_bid_count: number;
+  last_bid_time: string;
 };
 
 export type AuctionParticipant = {

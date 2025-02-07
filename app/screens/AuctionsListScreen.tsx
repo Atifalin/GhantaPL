@@ -230,27 +230,34 @@ const AuctionCard = ({
           </ThemedText>
         </View>
       </View>
-      {item.status === 'pending' ? (
+      {item.status === 'pending' && !isParticipant ? (
         <TouchableOpacity
           style={styles.joinButton}
           onPress={handleJoin}
-          disabled={joining || isParticipant}
+          disabled={joining}
         >
           {joining ? (
             <ActivityIndicator color="white" size="small" />
           ) : (
             <ThemedText type="default" style={styles.joinButtonText}>
-              {isParticipant ? 'Already Joined' : 'Join Auction'}
+              Join Auction
             </ThemedText>
           )}
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
-          style={styles.joinButton}
+          style={[
+            styles.joinButton,
+            item.status === 'completed' && styles.completedButton,
+            item.status === 'pending' && styles.pendingButton
+          ]}
           onPress={handleViewLiveAuction}
         >
           <ThemedText type="default" style={styles.joinButtonText}>
-            View Live Auction
+            {item.status === 'completed' ? 'View Results' :
+             item.status === 'pending' && isParticipant ? 'Waiting to Start' :
+             item.status === 'active' ? 'View Live Auction' :
+             'View Auction'}
           </ThemedText>
         </TouchableOpacity>
       )}
@@ -564,6 +571,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     marginTop: 12,
+  },
+  pendingButton: {
+    backgroundColor: '#FF9500', // Warning orange for pending
+  },
+  completedButton: {
+    backgroundColor: '#666', // Gray for completed
   },
   joinButtonText: {
     color: 'white',

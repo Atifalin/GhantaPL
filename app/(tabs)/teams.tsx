@@ -2,22 +2,17 @@ import { View, StyleSheet, ScrollView, Pressable, useColorScheme, Dimensions } f
 import { useState, useCallback, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, withSpring, withRepeat, withSequence, useSharedValue, cancelAnimation } from 'react-native-reanimated';
-import Colors from '../../app/constants/Colors';
+import { Colors } from '../../constants/Colors';
 import { FORMATIONS, Formation, FormationConfig } from '../../app/constants/Formations';
 import { ThemedText, ThemedView } from '../../app/components/Themed';
+import { Player } from '../../types/player';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const FIELD_WIDTH = Math.min(SCREEN_WIDTH - 32, 320);
 const FIELD_HEIGHT = FIELD_WIDTH * 1.3;
 const PLAYER_DOT_SIZE = 36;
 
-interface Player {
-  id: string;
-  name: string;
-  position: string;
-}
-
-const SAMPLE_PLAYERS: Player[] = [
+const SAMPLE_PLAYERS: Partial<Player>[] = [
   { id: '1', name: 'Alisson', position: 'GK' },
   { id: '2', name: 'TAA', position: 'DEF' },
   { id: '3', name: 'VVD', position: 'DEF' },
@@ -63,7 +58,7 @@ const FormationSelector: React.FC<{
 };
 
 interface PlayerDotProps {
-  player: Player;
+  player: Partial<Player>;
   onLongPress: () => void;
   isStarter?: boolean;
   style?: any;
@@ -153,7 +148,7 @@ const PlayerDot: React.FC<PlayerDotProps> = ({
 const RosterCard = ({ formation: initialFormation = '442' }: { formation?: Formation }) => {
   const [formation, setFormation] = useState<Formation>(initialFormation);
   const [players, setPlayers] = useState(SAMPLE_PLAYERS);
-  const [swapMode, setSwapMode] = useState<{ player: Player; position: string } | null>(null);
+  const [swapMode, setSwapMode] = useState<{ player: Partial<Player>; position: string } | null>(null);
 
   const formationConfig = FORMATIONS[formation];
   const startingXI = players.slice(0, 11);
@@ -172,7 +167,7 @@ const RosterCard = ({ formation: initialFormation = '442' }: { formation?: Forma
     }
   };
 
-  const handleLongPress = useCallback((player: Player) => {
+  const handleLongPress = useCallback((player: Partial<Player>) => {
     if (swapMode) {
       // Only enforce position check for GK
       if (player.position === 'GK' || swapMode.player.position === 'GK') {

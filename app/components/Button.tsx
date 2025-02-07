@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle, TextStyle, useColorScheme, Text } from 'react-native';
-import Colors from '../constants/Colors';
+import { Colors } from '../constants/Colors';
 
 interface ButtonProps {
   title: string;
@@ -8,7 +8,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'warning';
 }
 
 export default function Button({ 
@@ -20,17 +20,33 @@ export default function Button({
   variant = 'primary' 
 }: ButtonProps) {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const colors = Colors[colorScheme ?? 'light'];
 
   const getBackgroundColor = () => {
-    if (disabled) {
-      return isDark ? '#444' : '#ccc';
+    if (disabled) return '#ccc';
+    switch (variant) {
+      case 'primary':
+        return colors.tint;
+      case 'secondary':
+        return 'transparent';
+      case 'warning':
+        return '#FF3B30';
+      default:
+        return colors.tint;
     }
-    if (variant === 'primary') {
-      return colors.tint;
+  };
+
+  const getTextColor = () => {
+    if (disabled) return '#666';
+    switch (variant) {
+      case 'primary':
+      case 'warning':
+        return '#fff';
+      case 'secondary':
+        return colors.text;
+      default:
+        return '#fff';
     }
-    return isDark ? '#333' : '#e0e0e0';
   };
 
   return (
@@ -38,6 +54,7 @@ export default function Button({
       style={[
         styles.button,
         { backgroundColor: getBackgroundColor() },
+        variant === 'secondary' && { borderWidth: 1, borderColor: colors.text },
         style,
       ]}
       onPress={onPress}
@@ -46,7 +63,7 @@ export default function Button({
       <Text 
         style={[
           styles.text,
-          { color: variant === 'primary' || isDark ? '#FFFFFF' : '#000000' },
+          { color: getTextColor() },
           textStyle,
         ]}
       >

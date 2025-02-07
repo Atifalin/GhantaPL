@@ -1,19 +1,35 @@
-const tintColorLight = '#2f95dc';
-const tintColorDark = '#2f95dc'; // Changed from '#fff' to keep the blue color in dark mode
+const tintColorLight = '#007AFF';
+const tintColorDark = '#0A84FF';
 
-export default {
+type ColorScheme = {
+  text: string;
+  background: string;
+  tint: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+  card: string;
+};
+
+type Colors = {
+  light: ColorScheme;
+  dark: ColorScheme;
+};
+
+export const Colors: Colors = {
   light: {
-    text: '#000',
-    background: '#fff',
+    text: '#000000',
+    background: '#F2F2F7',
     tint: tintColorLight,
-    tabIconDefault: '#ccc',
+    tabIconDefault: '#C4C4C4',
     tabIconSelected: tintColorLight,
+    card: '#FFFFFF',
   },
   dark: {
-    text: '#fff',
-    background: '#000',
+    text: '#FFFFFF',
+    background: '#000000',
     tint: tintColorDark,
-    tabIconDefault: '#ccc',
+    tabIconDefault: '#C4C4C4',
     tabIconSelected: tintColorDark,
+    card: '#1C1C1E',
   },
 };

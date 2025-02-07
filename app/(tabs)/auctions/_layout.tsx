@@ -1,15 +1,21 @@
 import { Stack } from 'expo-router';
 import { Pressable, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Colors from '../../../app/constants/Colors';
+import { Colors } from '../../../app/constants/Colors';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabase';
 import { useState } from 'react';
 
+type RouteParams = {
+  isHost?: boolean;
+  id?: string;
+  status?: string;
+};
+
 export default function AuctionsLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme();
   const { user } = useAuth();
-  const colors = Colors[colorScheme];
+  const colors = Colors[colorScheme ?? 'light'];
   const [isPaused, setIsPaused] = useState(false);
 
   const toggleAuctionStatus = async (auctionId: string | undefined, isHost: boolean | undefined) => {
@@ -50,9 +56,10 @@ export default function AuctionsLayout() {
         options={({ route }) => ({
           title: 'Live Auction',
           headerRight: () => {
-            const isHost = route.params?.isHost === true;
-            const auctionId = route.params?.id;
-            const status = route.params?.status;
+            const params = route.params as RouteParams;
+            const isHost = params?.isHost === true;
+            const auctionId = params?.id;
+            const status = params?.status;
             const isPaused = status === 'paused';
             
             // Only show pause/play button for host

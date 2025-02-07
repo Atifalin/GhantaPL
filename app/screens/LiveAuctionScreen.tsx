@@ -1,15 +1,20 @@
 import React from 'react';
-import { ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView, ThemedText } from '../components/Themed';
 import Button from '../components/Button';
 import AuctionDetailsCard from '../components/auction/AuctionDetailsCard';
 import BiddingCard from '../components/auction/BiddingCard';
+import { WonPlayersList } from '../components/auction/WonPlayersList';
 import { useAuction } from '../hooks/useAuction';
-import Colors from '../constants/Colors';
+import { Colors } from '../constants/Colors';
 
 export default function LiveAuctionScreen() {
   const { id } = useLocalSearchParams();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = Colors[colorScheme ?? 'light'];
+
   const {
     auction,
     currentPlayer,
@@ -23,6 +28,7 @@ export default function LiveAuctionScreen() {
     handleBidTimerComplete,
     handleSkipPlayer,
     handlePauseAuction,
+    handleEndAuction,
     retryConnection,
     handleStartAuction,
     participants,
@@ -31,7 +37,7 @@ export default function LiveAuctionScreen() {
   if (isLoading) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.text} />
       </ThemedView>
     );
   }
@@ -75,20 +81,27 @@ export default function LiveAuctionScreen() {
   }
 
   const isAuctionActive = auction!.status === 'active';
-  const isAuctionPaused = auction!.status === 'paused';
+  const isAuctionPaused = auction!.status === 'pending';
   const showBiddingCard = currentPlayer && (isAuctionActive || isAuctionPaused);
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={[
+          styles.content,
+          { backgroundColor: colors.background }
+        ]}
+      >
         <AuctionDetailsCard
-          name={auction!.name}
-          status={auction!.status}
-          hostName={auction!.host?.display_name || 'Unknown'}
+          title={auction!.name}
+          hostName={auction!.host?.display_name || auction!.host?.username || 'Unknown'}
           budgetPerPlayer={auction!.budget_per_player}
+          remainingBudget={userBudget}
           totalPlayers={auctionStats.total_players}
           completedPlayers={auctionStats.completed_players}
           skippedPlayers={auctionStats.skipped_players}
+          availablePlayers={auctionStats.available_players}
         />
 
         {showBiddingCard && (
@@ -102,13 +115,32 @@ export default function LiveAuctionScreen() {
             isHost={isHost}
             noBidCount={auction!.no_bid_count || 0}
             totalParticipants={participants?.length || 0}
+            lastBidTime={auction!.last_bid_time}
             key={currentPlayer.id}
           />
         )}
 
         {isHost && (
-          <ThemedView style={styles.hostControls}>
-            {auction!.status === 'pending' ? (
+          <ThemedView style={[
+            styles.hostControls,
+            { 
+              backgroundColor: isDark ? colors.card : colors.background,
+              borderColor: isDark ? '#404040' : '#E5E5EA'
+            }
+          ]}>
+            {auction!.status === 'completed' ? (
+              <Button
+                title="Restart Auction"
+                variant="primary"
+                onPress={handleStartAuction}
+              />
+            ) : auction!.status === 'pending' && auction!.current_player_id ? (
+              <Button
+                title="Resume Auction"
+                variant="primary"
+                onPress={handlePauseAuction}
+              />
+            ) : auction!.status === 'pending' ? (
               <Button
                 title="Start Auction"
                 variant="primary"
@@ -117,7 +149,7 @@ export default function LiveAuctionScreen() {
             ) : (
               <>
                 <Button
-                  title={isAuctionPaused ? "Resume Auction" : "Pause Auction"}
+                  title="Pause Auction"
                   variant="primary"
                   onPress={handlePauseAuction}
                 />
@@ -128,10 +160,32 @@ export default function LiveAuctionScreen() {
                   disabled={!isAuctionActive}
                   style={styles.skipButton}
                 />
+                <Button
+                  title="End Auction"
+                  variant="warning"
+                  onPress={handleEndAuction}
+                  style={styles.endButton}
+                />
               </>
             )}
           </ThemedView>
         )}
+
+        <ThemedView style={[
+          styles.wonPlayersSection,
+          { 
+            backgroundColor: isDark ? colors.card : colors.background,
+            borderColor: isDark ? '#404040' : '#E5E5EA'
+          }
+        ]}>
+          <ThemedText style={[
+            styles.sectionTitle,
+            { color: colors.text }
+          ]}>
+            Won Players
+          </ThemedText>
+          <WonPlayersList auctionId={id as string} />
+        </ThemedView>
       </ScrollView>
     </ThemedView>
   );
@@ -151,31 +205,46 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 16,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 16,
+    opacity: 0.7,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    minWidth: 120,
   },
   hostControls: {
     margin: 16,
     padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
     gap: 12,
+    borderWidth: 1,
   },
   skipButton: {
     marginTop: 8,
   },
-  errorText: {
-    fontSize: 18,
+  endButton: {
+    marginTop: 8,
+  },
+  wonPlayersSection: {
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorSubtext: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  retryButton: {
-    minWidth: 120,
+    marginBottom: 16,
   },
 });

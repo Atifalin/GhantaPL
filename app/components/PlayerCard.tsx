@@ -1,24 +1,25 @@
 import React from 'react';
-import { View, StyleSheet, Image, useColorScheme } from 'react-native';
+import { View, StyleSheet, Image, useColorScheme, ViewStyle } from 'react-native';
 import { ThemedText, ThemedView } from './Themed';
-import Colors from '../constants/Colors';
-import { Player } from '../types/player';
+import { Colors } from '../constants/Colors';
+import { Player } from '../../types/player';
 
 interface PlayerCardProps {
   player: Player;
   showStats?: boolean;
+  style?: ViewStyle;
 }
 
-export default function PlayerCard({ player, showStats = false }: PlayerCardProps) {
+export default function PlayerCard({ player, showStats = false, style }: PlayerCardProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, style]}>
       <View style={styles.header}>
         <View style={styles.playerInfo}>
           <ThemedText style={styles.name}>{player.name}</ThemedText>
-          <ThemedText style={styles.team}>{player.team?.name || 'Free Agent'}</ThemedText>
+          <ThemedText style={styles.team}>{player.team || 'Free Agent'}</ThemedText>
         </View>
         <View style={styles.position}>
           <ThemedText style={styles.positionText}>{player.position}</ThemedText>
@@ -28,18 +29,18 @@ export default function PlayerCard({ player, showStats = false }: PlayerCardProp
       {showStats && (
         <View style={styles.stats}>
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{player.matches_played || 0}</ThemedText>
-            <ThemedText style={styles.statLabel}>Matches</ThemedText>
+            <ThemedText style={styles.statValue}>{player.ovr}</ThemedText>
+            <ThemedText style={styles.statLabel}>OVR</ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{player.goals || 0}</ThemedText>
-            <ThemedText style={styles.statLabel}>Goals</ThemedText>
+            <ThemedText style={styles.statValue}>{player.pac}</ThemedText>
+            <ThemedText style={styles.statLabel}>PAC</ThemedText>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <ThemedText style={styles.statValue}>{player.assists || 0}</ThemedText>
-            <ThemedText style={styles.statLabel}>Assists</ThemedText>
+            <ThemedText style={styles.statValue}>{player.sho}</ThemedText>
+            <ThemedText style={styles.statLabel}>SHO</ThemedText>
           </View>
         </View>
       )}

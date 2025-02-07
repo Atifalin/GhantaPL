@@ -1,18 +1,18 @@
 import { Text, View, useColorScheme } from 'react-native';
-import Colors from '../constants/Colors';
+import { Colors } from '../constants/Colors';
 
 export function ThemedView(props: React.ComponentProps<typeof View>) {
   const colorScheme = useColorScheme();
-  const backgroundColor = colorScheme === 'dark' ? Colors.dark.background : Colors.light.background;
+  const colors = Colors[colorScheme ?? 'light'];
 
-  return <View style={[{ backgroundColor }, props.style]} {...props} />;
+  return <View style={[{ backgroundColor: colors.background }, props.style]} {...props} />;
 }
 
 export function ThemedText(props: React.ComponentProps<typeof Text>) {
   const colorScheme = useColorScheme();
-  const color = colorScheme === 'dark' ? '#fff' : Colors.light.text;
+  const colors = Colors[colorScheme ?? 'light'];
 
-  return <Text style={[{ color }, props.style]} {...props} />;
+  return <Text style={[{ color: colors.text }, props.style]} {...props} />;
 }
 
 const Themed = {
