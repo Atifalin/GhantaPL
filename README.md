@@ -2,6 +2,10 @@
 
 A mobile app for conducting FIFA player auctions with friends. Built with React Native, Expo, and Supabase.
 
+## Documentation
+- For a comprehensive guide on how to use the app, check out our [User Guide](docs/USER_GUIDE.md)
+- For technical documentation, continue reading below
+
 ## Features
 
 ### Auction System
