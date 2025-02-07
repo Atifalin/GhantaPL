@@ -1,7 +1,19 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Pressable, useColorScheme, Dimensions, ActivityIndicator, Share } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, withSpring, withRepeat, withSequence, useSharedValue, cancelAnimation } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  runOnJS,
+  useAnimatedGestureHandler,
+} from 'react-native-reanimated';
+import {
+  PanGestureHandler,
+  PanGestureHandlerGestureEvent,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/Colors';
@@ -17,10 +29,51 @@ const FIELD_WIDTH = Math.min(SCREEN_WIDTH - 32, 320);
 const FIELD_HEIGHT = FIELD_WIDTH * 1.3;
 const PLAYER_DOT_SIZE = 36;
 
-const FormationSelector: React.FC<{
+type ExtendedPlayer = {
+  id?: string;
+  player_id?: string;
+  position?: string;
+  name?: string;
+  auction_name?: string;
+  ovr?: number;
+};
+
+interface FormationSelectorProps {
   formation: Formation;
   onFormationChange: (formation: Formation) => void;
-}> = ({ formation, onFormationChange }) => {
+}
+
+interface DraggablePlayerProps {
+  player: PlayerData;
+  position?: string;
+  isStarter: boolean;
+  onDragEnd: (coords: { x: number; y: number }) => void;
+}
+
+interface DragEndCoords {
+  x: number;
+  y: number;
+}
+
+interface FieldPosition {
+  position: string;
+  x: number;
+  y: number;
+}
+
+interface PlayerData {
+  id: string;
+  name: string;
+  position: string;
+  ovr: number;
+}
+
+interface AssignedPlayerData {
+  position: FieldPosition;
+  player: PlayerData | null;
+}
+
+const FormationSelector: React.FC<FormationSelectorProps> = ({ formation, onFormationChange }) => {
   return (
     <View style={styles.formationSelector}>
       {Object.values(FORMATIONS).map((f) => (
@@ -44,121 +97,106 @@ const FormationSelector: React.FC<{
   );
 };
 
-type ExtendedPlayer = Partial<Player> & {
-  auction_name?: string;
-};
-
-interface PlayerDotProps {
-  player: ExtendedPlayer;
-  onLongPress: () => void;
-  onPress?: () => void;
-  isStarter?: boolean;
-  style?: any;
-  isSelected?: boolean;
-  position?: string;
-}
-
-const PlayerDot: React.FC<PlayerDotProps> = ({
-  player,
-  onLongPress,
-  onPress,
-  isStarter = true,
-  style,
-  isSelected = false,
-  position,
-}) => {
+const DraggablePlayer: React.FC<DraggablePlayerProps> = ({ player, position, isStarter, onDragEnd }) => {
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
+  const zIndex = useSharedValue(1);
 
-  useEffect(() => {
-    if (isSelected) {
-      scale.value = withRepeat(
-        withSequence(
-          withSpring(1.1, { duration: 500 }),
-          withSpring(1, { duration: 500 })
-        ),
-        -1,
-        true
-      );
-      opacity.value = withRepeat(
-        withSequence(
-          withSpring(0.7, { duration: 500 }),
-          withSpring(1, { duration: 500 })
-        ),
-        -1,
-        true
-      );
-    } else {
-      cancelAnimation(scale);
-      cancelAnimation(opacity);
+  const panGestureEvent = useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
+    onStart: () => {
+      scale.value = withSpring(1.1);
+      zIndex.value = 1000;
+      runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    onActive: (event) => {
+      translateX.value = event.translationX;
+      translateY.value = event.translationY;
+    },
+    onEnd: (event) => {
       scale.value = withSpring(1);
-      opacity.value = withSpring(1);
-    }
-  }, [isSelected]);
+      zIndex.value = 1;
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+      runOnJS(onDragEnd)({
+        x: event.absoluteX,
+        y: event.absoluteY,
+      });
+    },
+  });
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
+      zIndex: zIndex.value,
+    };
+  });
 
   const getBackgroundColor = () => {
     switch (player.position) {
-      case 'GK':
-        return '#FF9800';
-      case 'DEF':
-        return '#2196F3';
-      case 'MID':
-        return '#4CAF50';
-      case 'ATT':
-        return '#F44336';
-      default:
-        return '#fff';
+      case 'GK': return '#FF9800';
+      case 'DEF': return '#2196F3';
+      case 'MID': return '#4CAF50';
+      case 'ATT': return '#F44336';
+      default: return '#fff';
     }
   };
 
   return (
-    <Animated.View style={[animatedStyle]}>
-      <Pressable
-        onLongPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          onLongPress();
-        }}
-        onPress={() => {
-          if (onPress) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onPress();
-          }
-        }}
-        style={[
-          styles.playerDot,
-          { backgroundColor: getBackgroundColor() },
-          !isStarter && styles.reserveDot,
-          style,
-        ]}
-      >
-        <ThemedText style={styles.positionIndicator}>
-          {position || player.position}
-        </ThemedText>
-        {isStarter && (
-          <View style={styles.playerNameContainer}>
-            <ThemedText style={styles.playerName}>{player.name}</ThemedText>
-          </View>
-        )}
-      </Pressable>
-    </Animated.View>
+    <PanGestureHandler onGestureEvent={panGestureEvent}>
+      <Animated.View style={[styles.draggableContainer, animatedStyle]}>
+        <View
+          style={[
+            styles.playerDot,
+            { backgroundColor: getBackgroundColor() },
+            !isStarter && styles.reserveDot,
+          ]}
+        >
+          <ThemedText style={styles.positionIndicator}>
+            {position || player.position}
+          </ThemedText>
+          {isStarter && (
+            <View style={styles.playerNameContainer}>
+              <ThemedText style={styles.playerName}>{player.name}</ThemedText>
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    </PanGestureHandler>
   );
 };
 
-const RosterCard = ({ formation: initialFormation = '442', auctionId }: { formation?: Formation, auctionId?: string }) => {
-  const [formation, setFormation] = useState<Formation>(initialFormation);
+interface RosterCardProps {
+  formation?: Formation;
+  auctionId?: string;
+}
+
+const RosterCard: React.FC<RosterCardProps> = ({ formation: initialFormation = '442', auctionId }) => {
+  const [formation, setFormation] = useState(initialFormation);
   const { wonPlayers, isLoading, setWonPlayers } = useUserTeam(auctionId);
-  const [swapMode, setSwapMode] = useState<{ 
-    player: ExtendedPlayer; 
-    position: string;
-    isReserve?: boolean;
-  } | null>(null);
-  const fieldRef = useRef<ViewShot>(null);
+  const fieldRef = useRef<View | null>(null);
+  const screenshotRef = useRef<ViewShot | null>(null);
   const { showToast } = useToast();
+  const [fieldLayout, setFieldLayout] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [assignedPlayersList, setAssignedPlayersList] = useState<AssignedPlayerData[]>([]);
+  const [reservePlayersList, setReservePlayersList] = useState<PlayerData[]>([]);
+
+  const getBasePosition = useCallback((detailedPosition: string) => {
+    if (['GK'].includes(detailedPosition)) return 'GK';
+    if (['LB', 'CB', 'RB', 'DEF'].includes(detailedPosition)) return 'DEF';
+    if (['CDM', 'CM', 'CAM', 'LM', 'RM', 'MID'].includes(detailedPosition)) return 'MID';
+    if (['ST', 'CF', 'LW', 'RW', 'LF', 'RF', 'ATT'].includes(detailedPosition)) return 'ATT';
+    return detailedPosition;
+  }, []);
 
   // Load saved formation and player order
   useEffect(() => {
@@ -208,55 +246,77 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
     }
   }, [formation, wonPlayers, auctionId]);
 
-  const formationConfig = FORMATIONS[formation];
-  
-  const getBasePosition = useCallback((detailedPosition: string) => {
-    if (['GK'].includes(detailedPosition)) return 'GK';
-    if (['LB', 'CB', 'RB', 'DEF'].includes(detailedPosition)) return 'DEF';
-    if (['CDM', 'CM', 'CAM', 'LM', 'RM', 'MID'].includes(detailedPosition)) return 'MID';
-    if (['ST', 'CF', 'LW', 'RW', 'LF', 'RF', 'ATT'].includes(detailedPosition)) return 'ATT';
-    return detailedPosition;
+  useEffect(() => {
+    const formationConfig = FORMATIONS[formation];
+    
+    const sortedPlayers = [...wonPlayers].sort((a, b) => {
+      const posOrder = { GK: 1, DEF: 2, MID: 3, ATT: 4 };
+      return (posOrder[a.player.position as keyof typeof posOrder] || 0) - 
+             (posOrder[b.player.position as keyof typeof posOrder] || 0);
+    });
+
+    const playersByPosition = sortedPlayers.reduce((acc, wp) => {
+      const basePos = getBasePosition(wp.player.position);
+      if (!acc[basePos]) acc[basePos] = [];
+      acc[basePos].push({
+        id: wp.player_id,
+        name: wp.player.name,
+        position: wp.player.position,
+        ovr: wp.player.ovr
+      });
+      return acc;
+    }, {} as Record<string, PlayerData[]>);
+
+    const newAssignedPlayers = formationConfig.positions.map((pos) => {
+      const basePositionType = getBasePosition(pos.position);
+      const availablePlayers = playersByPosition[basePositionType] || [];
+      const player = availablePlayers.shift();
+      return {
+        position: pos,
+        player: player || null,
+      };
+    });
+
+    setAssignedPlayersList(newAssignedPlayers);
+
+    const assignedPlayerIds = newAssignedPlayers
+      .map(ap => ap.player?.id)
+      .filter(Boolean) as string[];
+    
+    const newReserves = sortedPlayers
+      .filter(wp => !assignedPlayerIds.includes(wp.player_id))
+      .map(wp => ({
+        id: wp.player_id,
+        name: wp.player.name,
+        position: wp.player.position,
+        ovr: wp.player.ovr
+      }));
+
+    setReservePlayersList(newReserves);
+  }, [formation, wonPlayers, getBasePosition]);
+
+  useEffect(() => {
+    if (fieldRef.current) {
+      fieldRef.current.measure((
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        pageX: number,
+        pageY: number
+      ) => {
+        setFieldLayout({
+          x: pageX,
+          y: pageY,
+          width,
+          height,
+        });
+      });
+    }
   }, []);
 
-  // Sort players by position for optimal placement
-  const sortedPlayers = [...wonPlayers].sort((a, b) => {
-    const posOrder = { GK: 1, DEF: 2, MID: 3, ATT: 4 };
-    return (posOrder[a.player.position as keyof typeof posOrder] || 0) - 
-           (posOrder[b.player.position as keyof typeof posOrder] || 0);
-  });
-
-  // Group players by base position
-  const playersByPosition = sortedPlayers.reduce((acc, wp) => {
-    const basePos = getBasePosition(wp.player.position);
-    if (!acc[basePos]) acc[basePos] = [];
-    acc[basePos].push({
-      ...wp.player,
-      id: wp.player_id,
-      auction_name: wp.auction_name
-    });
-    return acc;
-  }, {} as Record<string, ExtendedPlayer[]>);
-
-  // Assign players to positions based on formation
-  const assignedPlayers = formationConfig.positions.map((pos) => {
-    const basePositionType = getBasePosition(pos.position);
-    const availablePlayers = playersByPosition[basePositionType] || [];
-    const player = availablePlayers.shift(); // Take the next available player for this position
-    return {
-      position: pos,
-      player: player || null,
-    };
-  });
-
-  const startingXI = assignedPlayers.map(ap => ap.player).filter(Boolean);
-  const reserves = sortedPlayers
-    .filter(wp => !startingXI.find(p => p?.id === wp.player_id))
-    .map(wp => ({
-      ...wp.player,
-      id: wp.player_id,
-      auction_name: wp.auction_name
-    }));
-
+  const formationConfig = FORMATIONS[formation];
+  
   const getDetailedPosition = (basePosition: string, index: number, totalInPosition: number) => {
     const positions = {
       GK: ['GK'],
@@ -269,100 +329,98 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
     return posArray[Math.min(index, posArray.length - 1)] || basePosition;
   };
 
-  const handleLongPress = useCallback((player: ExtendedPlayer, isReserve = false) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSwapMode({ player, position: player.position!, isReserve });
+  const movePlayerToReserves = useCallback((player: PlayerData) => {
+    setReservePlayersList(prev => [...prev, player]);
+    setAssignedPlayersList(prev => 
+      prev.map(p => p.player?.id === player.id ? { ...p, player: null } : p)
+    );
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  const handleMoveToReserves = useCallback(() => {
-    if (!swapMode) return;
+  const handleDragEnd = useCallback(
+    (coords: { x: number; y: number }, draggedPlayer: PlayerData) => {
+      if (!fieldRef.current) return;
 
-    const newPlayers = [...wonPlayers];
-    const playerIndex = newPlayers.findIndex(p => p.player_id === swapMode.player.id);
-    if (playerIndex !== -1) {
-      const [movedPlayer] = newPlayers.splice(playerIndex, 1);
-      newPlayers.push(movedPlayer);
-      setWonPlayers(newPlayers);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-    setSwapMode(null);
-  }, [swapMode, wonPlayers, setWonPlayers]);
+      fieldRef.current.measure((x, y, width, height, pageX, pageY) => {
+        const fieldBounds = {
+          left: pageX,
+          right: pageX + width,
+          top: pageY,
+          bottom: pageY + height,
+        };
 
-  const handleEmptyPositionPress = useCallback((position: string) => {
-    if (!swapMode) return;
+        // Check if dropped in reserves area
+        if (
+          coords.y > fieldBounds.bottom ||
+          coords.y < fieldBounds.top ||
+          coords.x < fieldBounds.left ||
+          coords.x > fieldBounds.right
+        ) {
+          movePlayerToReserves(draggedPlayer);
+          return;
+        }
 
-    const emptyBasePosition = getBasePosition(position);
-    const playerBasePosition = getBasePosition(swapMode.player.position!);
+        // Find closest position
+        const relativeX = (coords.x - fieldBounds.left) / width;
+        const relativeY = (coords.y - fieldBounds.top) / height;
 
-    // Check if the player's position matches the empty position
-    if (playerBasePosition !== emptyBasePosition && 
-        (playerBasePosition === 'GK' || emptyBasePosition === 'GK')) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showToast('Invalid position swap', 'error');
-      setSwapMode(null);
-      return;
-    }
+        let closestDistance = Infinity;
+        let closestPosition: FieldPosition | null = null;
+        let closestIndex = -1;
 
-    const newPlayers = [...wonPlayers];
-    const playerIndex = newPlayers.findIndex(p => p.player_id === swapMode.player.id);
-    
-    if (playerIndex !== -1) {
-      const [movedPlayer] = newPlayers.splice(playerIndex, 1);
-      
-      // Find the target position index in the formation
-      const targetIndex = assignedPlayers.findIndex(ap => 
-        ap.position.position === position
-      );
+        assignedPlayersList.forEach((pos, index) => {
+          const distance = Math.sqrt(
+            Math.pow(pos.position.x - relativeX, 2) + Math.pow(pos.position.y - relativeY, 2)
+          );
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPosition = pos.position;
+            closestIndex = index;
+          }
+        });
 
-      if (targetIndex !== -1) {
-        // If coming from reserves, put them at the start
-        // If coming from starting XI, maintain relative position
-        const insertIndex = swapMode.isReserve ? 0 : targetIndex;
-        newPlayers.splice(insertIndex, 0, movedPlayer);
-        setWonPlayers(newPlayers);
+        if (!closestPosition || closestDistance > 0.2) return; // Add distance threshold
+
+        const targetPlayer = assignedPlayersList[closestIndex]?.player;
+        const sourceIndex = assignedPlayersList.findIndex(p => p.player?.id === draggedPlayer.id);
+
+        if (sourceIndex === -1) {
+          // Player is coming from reserves
+          if (targetPlayer) {
+            // Swap with existing player
+            movePlayerToReserves(targetPlayer);
+          }
+          setAssignedPlayersList(prev => 
+            prev.map((p, i) => i === closestIndex ? { ...p, player: draggedPlayer } : p)
+          );
+          setReservePlayersList(prev => prev.filter(p => p.id !== draggedPlayer.id));
+        } else {
+          // Player is already on field
+          setAssignedPlayersList(prev => {
+            const newPlayers = [...prev];
+            // Always perform the swap, whether target position has a player or not
+            newPlayers[sourceIndex] = { 
+              ...newPlayers[sourceIndex], 
+              player: targetPlayer // This will be null if target position was empty
+            };
+            newPlayers[closestIndex] = { 
+              ...newPlayers[closestIndex], 
+              player: draggedPlayer 
+            };
+            return newPlayers;
+          });
+        }
+
+        // Provide haptic feedback for successful drop
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-    }
-
-    setSwapMode(null);
-  }, [swapMode, wonPlayers, showToast, getBasePosition, setWonPlayers, assignedPlayers]);
-
-  const handlePlayerPress = useCallback((player: ExtendedPlayer) => {
-    if (!swapMode) return;
-
-    // Don't swap with self
-    if (swapMode.player.id === player.id) {
-      setSwapMode(null);
-      return;
-    }
-
-    // Only enforce position check for GK
-    if (player.position === 'GK' || swapMode.player.position === 'GK') {
-      if (player.position !== swapMode.player.position) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showToast('Cannot swap GK with other positions', 'error');
-        setSwapMode(null);
-        return;
-      }
-    }
-
-    const newPlayers = [...wonPlayers];
-    const index1 = newPlayers.findIndex(p => p.player_id === swapMode.player.id);
-    const index2 = newPlayers.findIndex(p => p.player_id === player.id);
-    
-    if (index1 !== -1 && index2 !== -1) {
-      // Simple swap of array elements
-      [newPlayers[index1], newPlayers[index2]] = [newPlayers[index2], newPlayers[index1]];
-      setWonPlayers(newPlayers);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-
-    setSwapMode(null);
-  }, [swapMode, wonPlayers, setWonPlayers]);
+      });
+    },
+    [assignedPlayersList, movePlayerToReserves]
+  );
 
   const handleAutoPlace = useCallback(() => {
     // Try to place each reserve player in an empty position of matching type
-    const emptyPositions = assignedPlayers
+    const emptyPositions = assignedPlayersList
       .filter(ap => !ap.player)
       .map(ap => ({
         position: ap.position.position,
@@ -374,12 +432,12 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
       return;
     }
 
-    const reservesByPosition = reserves.reduce((acc, player) => {
+    const reservesByPosition = reservePlayersList.reduce((acc, player) => {
       const basePosition = getBasePosition(player.position!);
       if (!acc[basePosition]) acc[basePosition] = [];
       acc[basePosition].push(player);
       return acc;
-    }, {} as Record<string, ExtendedPlayer[]>);
+    }, {} as Record<string, PlayerData[]>);
 
     // For each empty position, try to fill it with a matching reserve player
     let newPlayers = [...wonPlayers];
@@ -412,11 +470,11 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
       showToast('No matching reserve players for empty positions', 'info');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-  }, [reserves, assignedPlayers, wonPlayers, getBasePosition, setWonPlayers]);
+  }, [reservePlayersList, assignedPlayersList, wonPlayers, getBasePosition, setWonPlayers]);
 
   const handleScreenshot = async () => {
     try {
-      const ref = fieldRef.current;
+      const ref = screenshotRef.current;
       if (!ref?.capture) return;
       
       const uri = await ref.capture();
@@ -439,57 +497,42 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
   }
 
   return (
-    <View style={styles.rosterContainer}>
-      <ViewShot ref={fieldRef} style={styles.fieldContainer}>
-        <View style={styles.field}>
+    <GestureHandlerRootView style={styles.rosterContainer}>
+      <ViewShot ref={screenshotRef} style={styles.fieldContainer}>
+        <View ref={fieldRef} style={styles.field}>
           <View style={styles.centerCircle} />
           <View style={styles.centerLine} />
           <View style={styles.penaltyBox} />
           <View style={styles.penaltyBoxTop} />
 
-          {assignedPlayers.map(({ position: pos, player }, index) => {
-            if (!player) {
-              return (
-                <Pressable
-                  key={pos.position + index}
-                  style={[
-                    styles.playerPosition,
-                    {
-                      left: pos.x * FIELD_WIDTH,
-                      top: pos.y * FIELD_HEIGHT,
-                    },
-                  ]}
-                  onPress={() => {
-                    if (swapMode) {
-                      handleEmptyPositionPress(pos.position);
-                    }
-                  }}
-                >
-                  <View style={[
-                    styles.emptyPosition, 
-                    { opacity: swapMode ? 0.8 : 0.5 }
-                  ]}>
-                    <ThemedText style={styles.emptyPositionText}>
-                      {pos.position}
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              );
-            }
+          {assignedPlayersList.map(({ position: pos }, index) => (
+            <View
+              key={`empty-${index}`}
+              style={[
+                styles.playerPosition,
+                {
+                  left: pos.x * FIELD_WIDTH,
+                  top: pos.y * FIELD_HEIGHT,
+                },
+              ]}
+            >
+              <View style={[
+                styles.emptyPosition,
+                styles.dropTarget,
+              ]}>
+                <ThemedText style={styles.emptyPositionText}>
+                  {pos.position}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
 
-            const positionsByType = assignedPlayers
-              .filter(ap => ap.player?.position === player.position)
-              .map(ap => ap.player);
-            const positionIndex = positionsByType.findIndex(p => p?.id === player.id);
-            const detailedPosition = getDetailedPosition(
-              player.position!,
-              positionIndex,
-              positionsByType.length
-            );
+          {assignedPlayersList.map(({ position: pos, player }, index) => {
+            if (!player) return null;
 
             return (
-              <Pressable
-                key={pos.position + index}
+              <View
+                key={`player-${index}`}
                 style={[
                   styles.playerPosition,
                   {
@@ -497,20 +540,14 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
                     top: pos.y * FIELD_HEIGHT,
                   },
                 ]}
-                onPress={() => {
-                  if (swapMode) {
-                    handlePlayerPress(player);
-                  }
-                }}
               >
-                <PlayerDot
+                <DraggablePlayer
                   player={player}
-                  onLongPress={() => handleLongPress(player, false)}
+                  position={pos.position}
                   isStarter
-                  isSelected={swapMode?.player.id === player.id}
-                  position={detailedPosition}
+                  onDragEnd={(coords) => handleDragEnd(coords, player)}
                 />
-              </Pressable>
+              </View>
             );
           })}
         </View>
@@ -525,14 +562,6 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
             />
           </View>
           <View style={styles.actionButtons}>
-            {swapMode && (
-              <Pressable 
-                style={styles.actionButton}
-                onPress={handleMoveToReserves}
-              >
-                <ThemedText style={styles.actionButtonText}>To Reserves</ThemedText>
-              </Pressable>
-            )}
             <Pressable 
               style={styles.actionButton}
               onPress={handleAutoPlace}
@@ -551,15 +580,12 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
         <View style={styles.reserves}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.reservesRow}>
-              {reserves.map((player) => (
+              {reservePlayersList.map((player) => (
                 <View key={player.id} style={styles.reservePlayerContainer}>
-                  <PlayerDot
+                  <DraggablePlayer
                     player={player}
-                    onLongPress={() => handleLongPress(player, true)}
-                    onPress={() => handlePlayerPress(player)}
                     isStarter={false}
-                    isSelected={swapMode?.player.id === player.id}
-                    style={styles.reservePlayer}
+                    onDragEnd={(coords) => handleDragEnd(coords, player)}
                   />
                   <ThemedText style={styles.reservePlayerName} numberOfLines={1}>
                     {player.name}
@@ -573,7 +599,7 @@ const RosterCard = ({ formation: initialFormation = '442', auctionId }: { format
           </ScrollView>
         </View>
       </View>
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -873,6 +899,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2196f3',
     fontWeight: '600',
+  },
+  draggableContainer: {
+    position: 'absolute',
+    width: PLAYER_DOT_SIZE,
+    height: PLAYER_DOT_SIZE,
+  },
+  dropTarget: {
+    opacity: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderWidth: 2,
+    borderStyle: 'dashed',
   },
 });
 
