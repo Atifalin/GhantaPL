@@ -10,6 +10,48 @@ A mobile app for conducting FIFA player auctions with friends. Built with React 
 - Auction history and player statistics
 - Wallet management for users
 
+## Live Auction Flow
+
+### LiveAuctionScreen Component
+The Live Auction screen (`LiveAuctionScreen.tsx`) manages the real-time auction interface with the following features:
+
+- **Real-time Status Display**: Shows auction details, current player, and bidding status
+- **Host Controls**: 
+  - Start/Pause auction
+  - Skip current player
+  - End auction
+  - Restart completed auctions
+- **Bidding Interface**: 
+  - Current bid display
+  - Bidding controls
+  - Timer management
+- **Won Players List**: Real-time updates of acquired players
+- **Connection Management**: 
+  - Automatic reconnection handling
+  - Status indicators
+  - Error recovery
+
+### Auction Hook (useAuction)
+The `useAuction` hook manages the auction's business logic and state:
+
+- **Real-time Sync**:
+  - Supabase channel subscriptions for live updates
+  - Heartbeat mechanism for connection monitoring
+  - Automatic data refresh on changes
+- **Bid Management**:
+  - Bid validation against user budget
+  - Automatic player transitions
+  - No-bid counting
+- **State Management**:
+  - Current player tracking
+  - Budget updates
+  - Auction statistics
+  - Participant management
+- **Host Actions**:
+  - Auction flow control (start/pause/end)
+  - Player skipping logic
+  - Winner determination
+
 ### Team Management
 - Interactive team formation display (442, 433, 352, etc.)
 - Drag-and-drop player positioning
