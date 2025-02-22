@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Slot, useRouter, useSegments, SplashScreen as RouterSplashScreen } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { UserPrefsProvider } from '../contexts/UserPrefsContext';
 import { ToastProvider } from './context/ToastContext';
 import { RealtimeProvider } from './context/RealtimeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 
@@ -52,13 +53,24 @@ function AuthMiddleware() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const { isDark, theme } = useTheme();
+  
+  const navigationTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      primary: theme.tint,
+      background: theme.background,
+      card: theme.card,
+      text: theme.text,
+    },
+  };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider value={navigationTheme}>
       <AuthMiddleware />
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-    </ThemeProvider>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </NavigationThemeProvider>
   );
 }
 
@@ -81,11 +93,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <AuthProvider>
         <UserPrefsProvider>
-          <ToastProvider>
-            <RealtimeProvider>
-              <RootLayoutNav />
-            </RealtimeProvider>
-          </ToastProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <RealtimeProvider>
+                <RootLayoutNav />
+              </RealtimeProvider>
+            </ToastProvider>
+          </ThemeProvider>
         </UserPrefsProvider>
       </AuthProvider>
     </GestureHandlerRootView>

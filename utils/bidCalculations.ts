@@ -1,6 +1,13 @@
 import { Player } from '../types/player';
 
-type PlayerTier = Player['tier'];
+type PlayerTier = 'Elite' | 'Gold' | 'Silver' | 'Bronze';
+
+export const getTier = (ovr: number): PlayerTier => {
+  if (ovr >= 89) return 'Elite';
+  if (ovr >= 83) return 'Gold';
+  if (ovr >= 79) return 'Silver';
+  return 'Bronze';
+};
 
 /**
  * Calculate minimum bid based on player tier

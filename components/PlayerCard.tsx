@@ -86,7 +86,7 @@ export default function PlayerCard({ player, onSelect, isSelected = false }: Pla
   };
 
   const getTier = (ovr: number) => {
-    if (ovr >= 88) return 'Elite';
+    if (ovr >= 89) return 'Elite';
     if (ovr >= 83) return 'Gold';
     if (ovr >= 79) return 'Silver';
     return 'Bronze';

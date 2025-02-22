@@ -22,6 +22,7 @@ export function useAuctionState(id: string) {
 
   const fetchAuctionData = useCallback(async (userId?: string) => {
     try {
+      console.log('Fetching auction data for ID:', id, 'User ID:', userId);
       setError(null);
       setIsLoading(true);
 
@@ -52,11 +53,15 @@ export function useAuctionState(id: string) {
         .eq('id', id)
         .single();
 
+      console.log('Auction data response:', { data: auctionData, error: auctionError });
+
       if (auctionError) {
         if (auctionError.code === 'PGRST116') {
+          console.log('Auction not found');
           setError('Auction not found');
           setIsConnected(true);
         } else {
+          console.error('Auction fetch error:', auctionError);
           throw auctionError;
         }
         return;

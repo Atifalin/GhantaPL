@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, StyleSheet, ActivityIndicator, Pressable, TextInput, ScrollView, SafeAreaView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -31,10 +31,10 @@ const sortOptions = [
 
 const tierFilters = [
   { label: 'All', value: 'all' },
-  { label: '⭐️', value: 'Elite', color: '#FFD700' },
-  { label: '🥇', value: 'Gold', color: '#FFA500' },
-  { label: '🥈', value: 'Silver', color: '#C0C0C0' },
-  { label: '🥉', value: 'Bronze', color: '#CD7F32' },
+  { label: '⭐️ Elite', value: 'Elite', color: '#FFD700' },
+  { label: '🥇 Gold', value: 'Gold', color: '#FFA500' },
+  { label: '🥈 Silver', value: 'Silver', color: '#C0C0C0' },
+  { label: '🥉 Bronze', value: 'Bronze', color: '#CD7F32' },
 ];
 
 const styles = StyleSheet.create({
@@ -133,6 +133,22 @@ const FilterChip = ({ label, selected, onPress, color }: {
   </Pressable>
 );
 
+const getPositionGroup = (pos: string) => {
+  pos = pos.toUpperCase();
+  if (pos === 'ST' || pos === 'CF' || pos === 'LW' || pos === 'RW') return 'ATT';
+  if (pos === 'CAM' || pos === 'CM' || pos === 'CDM' || pos === 'LM' || pos === 'RM') return 'MID';
+  if (pos === 'LB' || pos === 'RB' || pos === 'CB' || pos === 'LWB' || pos === 'RWB') return 'DEF';
+  if (pos === 'GK') return 'GK';
+  return pos;
+};
+
+const getTier = (ovr: number) => {
+  if (ovr >= 89) return 'Elite';
+  if (ovr >= 83) return 'Gold';
+  if (ovr >= 79) return 'Silver';
+  return 'Bronze';
+};
+
 export default function PlayersScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<SelectedPlayer[]>([]);
@@ -142,6 +158,7 @@ export default function PlayersScreen() {
   const [filterPosition, setFilterPosition] = useState('all');
   const [filterTier, setFilterTier] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
   useEffect(() => {
@@ -150,6 +167,14 @@ export default function PlayersScreen() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const filteredAndSortedPlayers = useMemo(() => {
     let filtered = [...players];
 
     // Filter by selected players if enabled
@@ -160,50 +185,62 @@ export default function PlayersScreen() {
 
     // Apply position filter
     if (filterPosition !== 'all') {
-      filtered = filtered.filter(player => player.position === filterPosition);
+      filtered = filtered.filter(player => {
+        const mainPosition = getPositionGroup(player.position);
+        const altPositions = player.alternative_positions
+          ? player.alternative_positions.split(',').map(pos => getPositionGroup(pos.trim()))
+          : [];
+        
+        return mainPosition === filterPosition || altPositions.includes(filterPosition);
+      });
     }
 
     // Apply tier filter
     if (filterTier !== 'all') {
-      filtered = filtered.filter(player => player.tier === filterTier);
+      filtered = filtered.filter(player => {
+        const playerTier = getTier(player.ovr);
+        return playerTier === filterTier;
+      });
     }
 
     // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(player => 
         player.name.toLowerCase().includes(query) ||
-        player.team.toLowerCase().includes(query) ||
-        player.nation.toLowerCase().includes(query)
+        player.team?.toLowerCase().includes(query) ||
+        player.nation?.toLowerCase().includes(query)
       );
     }
 
     // Apply sorting
-    filtered.sort((a, b) => {
+    return filtered.sort((a, b) => {
       switch (sortBy) {
         case 'rank':
           return a.rank - b.rank;
         case 'ovr':
-          return b.overall_rating - a.overall_rating;
+          return b.ovr - a.ovr;
         case 'pac':
-          return b.pace - a.pace;
+          return b.pac - a.pac;
         case 'sho':
-          return b.shooting - a.shooting;
+          return b.sho - a.sho;
         case 'pas':
-          return b.passing - a.passing;
+          return b.pas - a.pas;
         case 'dri':
-          return b.dribbling - a.dribbling;
+          return b.dri - a.dri;
         case 'def':
-          return b.defending - a.defending;
+          return b.def - a.def;
         case 'phy':
-          return b.physical - a.physical;
+          return b.phy - a.phy;
         default:
           return 0;
       }
     });
+  }, [players, filterPosition, filterTier, debouncedSearchQuery, sortBy, selectedPlayers, showSelectedOnly]);
 
-    setFilteredPlayers(filtered);
-  }, [players, filterPosition, filterTier, searchQuery, sortBy, selectedPlayers, showSelectedOnly]);
+  useEffect(() => {
+    setFilteredPlayers(filteredAndSortedPlayers);
+  }, [filteredAndSortedPlayers]);
 
   const fetchPlayers = async () => {
     try {

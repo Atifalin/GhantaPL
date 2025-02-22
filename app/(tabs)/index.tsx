@@ -1,47 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, useColorScheme, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserPrefs } from '../../contexts/UserPrefsContext';
 import { usePresence } from '../../hooks/usePresence';
-import { Colors } from '../../constants/Colors';
-import { ThemedView } from '../../components/ThemedView';
-import { ThemedText } from '../../components/ThemedText';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import type { OnlineUser } from '../../hooks/usePresence';
+import { useTheme } from '../context/ThemeContext';
+import { ThemedButton } from '../components/ThemedButton';
+import { ThemedText } from '../components/Themed';
+import { ThemedView } from '../components/Themed';
 
 const ActionButton = ({ title, onPress, icon }: { title: string; onPress?: () => void; icon?: keyof typeof MaterialIcons.glyphMap }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { theme, isDark } = useTheme();
 
   return (
-    <Pressable
+    <ThemedButton
+      title={title}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.actionButton,
-        {
-          backgroundColor: pressed 
-            ? isDark ? '#2D2D2D' : '#f0f0f0'
-            : isDark ? '#252829' : '#fff',
-        }
-      ]}
-    >
-      <MaterialIcons name={icon} size={24} color={isDark ? Colors.dark.text : Colors.light.text} />
-      <ThemedText type="default" style={styles.actionButtonText}>{title}</ThemedText>
-    </Pressable>
+      icon={<MaterialIcons name={icon} size={24} color={isDark ? theme.text : theme.text} />}
+      variant="secondary"
+      style={styles.actionButton}
+    />
   );
 };
 
 const Card = ({ title, children }: { title: string; children: React.ReactNode }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { theme, isDark } = useTheme();
 
   return (
     <View style={[
       styles.card,
       {
-        backgroundColor: isDark ? Colors.dark.background : Colors.light.background,
+        backgroundColor: theme.card,
         borderColor: isDark ? '#2D2D2D' : '#e0e0e0',
       }
     ]}>
@@ -73,8 +65,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { preferences } = useUserPrefs();
   const { onlineUsers } = usePresence();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { theme, isDark } = useTheme();
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -115,24 +106,29 @@ export default function HomeScreen() {
     {
       id: 'create-auction',
       title: 'Create Auction',
-      icon: 'add',
-      onPress: () => router.push('/auctions/create')
+      icon: 'add-circle' as const,
+      description: 'Start a new auction for your league',
+      onPress: () => router.push('/modal/create-auction')
     },
     {
       id: 'join-auction',
       title: 'Join Auction',
-      icon: 'group',
+      icon: 'group' as const,
+      description: 'Participate in ongoing auctions',
       onPress: () => router.push('/auctions')
     },
     {
       id: 'view-teams',
       title: 'View My Teams',
-      icon: 'groups',
+      icon: 'groups' as const,
+      description: 'Check your auction teams',
       onPress: () => router.push('/teams')
     }
   ];
 
   const renderAuctionCard = useCallback((auction: Auction) => {
+    const hostName = auction.host_id ? (auction as any).host?.display_name : 'Unknown Host';
+    
     return (
       <Pressable
         key={auction.id}
@@ -145,31 +141,45 @@ export default function HomeScreen() {
           {
             backgroundColor: pressed 
               ? isDark ? '#2D2D2D' : '#f0f0f0'
-              : isDark ? '#252829' : '#fff',
+              : theme.card,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
           }
         ]}
       >
         <View style={styles.auctionCardContent}>
-          <ThemedText type="defaultSemiBold" style={styles.auctionTitle}>{auction.name}</ThemedText>
+          <View style={styles.auctionCardHeader}>
+            <ThemedText type="defaultSemiBold" style={styles.auctionTitle}>{auction.name}</ThemedText>
+            <View style={[styles.hostBadge, { backgroundColor: isDark ? '#2D2D2D' : '#f0f0f0' }]}>
+              <ThemedText type="default" style={styles.hostText}>
+                Host: {hostName}
+              </ThemedText>
+            </View>
+          </View>
           <View style={styles.auctionStats}>
             <View style={styles.auctionStat}>
-              <MaterialIcons name="groups" size={16} color={isDark ? Colors.dark.text : Colors.light.text} />
-              <ThemedText type="defaultSemiBold" style={styles.statText}>
-                {auction.auction_participants?.length || 0}
+              <MaterialIcons name="groups" size={16} color={theme.text} style={styles.statIcon} />
+              <ThemedText type="default" style={styles.statText}>
+                {auction.auction_participants?.length || 0} Participants
+              </ThemedText>
+            </View>
+            <View style={styles.auctionStat}>
+              <MaterialIcons name="schedule" size={16} color={theme.text} style={styles.statIcon} />
+              <ThemedText type="default" style={styles.statText}>
+                {new Date(auction.created_at).toLocaleDateString()}
               </ThemedText>
             </View>
           </View>
         </View>
       </Pressable>
     );
-  }, [isDark]);
+  }, [isDark, theme]);
 
   const renderOnlineUser = (onlineUser: OnlineUser, index: number) => (
     <View 
       key={`online-user-${onlineUser.id || index}`}
       style={[
         styles.onlineUserCard,
-        { backgroundColor: isDark ? '#252829' : '#fff' }
+        { backgroundColor: theme.card }
       ]}
     >
       <View style={[
@@ -187,8 +197,8 @@ export default function HomeScreen() {
           {onlineUser.displayName}
         </ThemedText>
         <View style={styles.onlineStatus}>
-          <View style={styles.onlineDot} />
-          <ThemedText type="default" style={styles.onlineText}>Online</ThemedText>
+          <View style={[styles.onlineDot, { backgroundColor: theme.tint }]} />
+          <ThemedText type="default" style={[styles.onlineText, { color: theme.tint }]}>Online</ThemedText>
         </View>
       </View>
     </View>
@@ -196,16 +206,19 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={[
-        styles.scrollView,
-        { backgroundColor: isDark ? Colors.dark.background : Colors.light.background }
-      ]}>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[
           styles.header,
           { backgroundColor: isDark ? '#1A1D1E' : '#f9f9f9' }
         ]}>
           <View style={styles.headerTop}>
-            <ThemedText type="title" style={styles.title}>Welcome to GhantaPL</ThemedText>
+            <View>
+              <ThemedText type="title" style={styles.title}>Welcome to GhantaPL</ThemedText>
+              <ThemedText type="default" style={styles.subtitle}>Your FIFA Auction Platform</ThemedText>
+            </View>
             <Pressable
               onPress={navigateToProfile}
               style={({ pressed }) => [
@@ -213,14 +226,14 @@ export default function HomeScreen() {
                 {
                   backgroundColor: pressed 
                     ? isDark ? '#2D2D2D' : '#f0f0f0'
-                    : isDark ? '#252829' : '#fff',
+                    : theme.card,
+                  transform: [{ scale: pressed ? 0.95 : 1 }],
                 }
               ]}
             >
               <ThemedText style={styles.profileEmoji}>{preferences.avatar}</ThemedText>
             </Pressable>
           </View>
-          <ThemedText type="default" style={styles.subtitle}>Your FIFA Auction Platform</ThemedText>
         </View>
 
         <View style={styles.section}>
@@ -235,52 +248,79 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.content}>
-          <Card title="Quick Actions">
-            {quickActions.map(action => (
-              <ActionButton 
-                key={action.id}
-                title={action.title}
-                icon={action.icon}
-                onPress={action.onPress}
-              />
-            ))}
-          </Card>
-
-          <Card title="Active Auctions">
-            {isLoading ? (
-              <ActivityIndicator size="large" color={isDark ? Colors.dark.text : Colors.light.text} />
-            ) : auctions.length > 0 ? (
-              <>
-                {auctions.map(renderAuctionCard)}
-                <Pressable
-                  onPress={() => router.push('/auctions')}
+          <View style={styles.quickActionsContainer}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>Quick Actions</ThemedText>
+            <View style={styles.quickActionsGrid}>
+              {quickActions.map(action => (
+                <Pressable 
+                  key={action.id}
+                  onPress={action.onPress}
                   style={({ pressed }) => [
-                    styles.viewAllButton,
-                    { opacity: pressed ? 0.8 : 1 }
+                    styles.quickActionCard,
+                    {
+                      backgroundColor: theme.card,
+                      transform: [{ scale: pressed ? 0.98 : 1 }],
+                    }
                   ]}
                 >
-                  <ThemedText type="default" style={styles.viewAllText}>
-                    View All Auctions
-                  </ThemedText>
                   <MaterialIcons 
-                    name="arrow-forward" 
-                    size={20} 
-                    color={isDark ? Colors.dark.text : Colors.light.text} 
+                    name={action.icon} 
+                    size={28} 
+                    color={theme.tint}
+                    style={styles.actionIcon}
                   />
+                  <View style={styles.actionContent}>
+                    <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
+                      {action.title}
+                    </ThemedText>
+                    <ThemedText type="default" style={styles.actionDescription}>
+                      {action.description}
+                    </ThemedText>
+                  </View>
                 </Pressable>
-              </>
-            ) : (
-              <ThemedText type="default" style={styles.emptyText}>
-                No active auctions at the moment
-              </ThemedText>
-            )}
-          </Card>
+              ))}
+            </View>
+          </View>
 
-          <Card title="My Recent Activity">
-            <ThemedText type="default" style={styles.emptyText}>
-              No recent activity
-            </ThemedText>
-          </Card>
+          <View style={styles.auctionsContainer}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="subtitle" style={styles.sectionTitle}>Active Auctions</ThemedText>
+              <Pressable
+                onPress={() => router.push('/auctions')}
+                style={({ pressed }) => [
+                  styles.viewAllButton,
+                  { opacity: pressed ? 0.8 : 1 }
+                ]}
+              >
+                <ThemedText type="default" style={[styles.viewAllText, { color: theme.tint }]}>
+                  View All
+                </ThemedText>
+                <MaterialIcons 
+                  name="arrow-forward" 
+                  size={20} 
+                  color={theme.tint} 
+                />
+              </Pressable>
+            </View>
+            
+            {isLoading ? (
+              <ActivityIndicator size="large" color={theme.text} style={styles.loader} />
+            ) : auctions.length > 0 ? (
+              <View style={styles.auctionsList}>
+                {auctions.map(renderAuctionCard)}
+              </View>
+            ) : (
+              <View style={[styles.emptyState, { backgroundColor: theme.card }]}>
+                <MaterialIcons name="gavel" size={48} color={theme.text} style={styles.emptyIcon} />
+                <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
+                  No Active Auctions
+                </ThemedText>
+                <ThemedText type="default" style={styles.emptyText}>
+                  Create a new auction to get started
+                </ThemedText>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
     </ThemedView>
@@ -290,7 +330,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   scrollView: {
     flex: 1,
@@ -300,193 +339,181 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '600',
+    marginBottom: 4,
   },
   subtitle: {
     opacity: 0.7,
   },
   profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileEmoji: {
+    fontSize: 24,
+  },
+  section: {
+    padding: 20,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+  },
+  onlineUsersContainer: {
+    paddingRight: 20,
+    gap: 12,
+  },
+  onlineUserCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    gap: 12,
+    minWidth: 180,
+  },
+  onlineUserAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    overflow: 'hidden',
-  },
-  profileEmoji: {
-    fontSize: 20,
-    textAlign: 'center',
-    lineHeight: 40,
-  },
-  section: {
-    padding: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  onlineUsersContainer: {
-    paddingRight: 12,
-  },
-  onlineUserCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    marginRight: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  onlineUserAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    overflow: 'hidden',
   },
   onlineUserEmoji: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 32,
+    fontSize: 20,
   },
   onlineUserInfo: {
-    maxWidth: 120,
+    flex: 1,
   },
   onlineUserName: {
-    fontSize: 14,
-    fontWeight: '600',
     marginBottom: 4,
-  },
-  onlineUserEmail: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 2,
   },
   onlineStatus: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   onlineDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#4CAF50',
-    marginRight: 3,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   onlineText: {
-    fontSize: 10,
-    opacity: 0.7,
+    fontSize: 12,
   },
   content: {
-    padding: 10,
-  },
-  card: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  divider: {
-    height: 1,
-    marginBottom: 12,
-  },
-  actionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  actionButtonText: {
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  emptyText: {
-    textAlign: 'center',
-    opacity: 0.7,
     padding: 20,
+    gap: 32,
   },
-  auctionCard: {
+  quickActionsContainer: {
+    gap: 16,
+  },
+  quickActionsGrid: {
+    gap: 12,
+  },
+  quickActionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 16,
+  },
+  actionIcon: {
     padding: 12,
     borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
-  auctionCardContent: {
+  actionContent: {
+    flex: 1,
+  },
+  actionTitle: {
+    marginBottom: 4,
+  },
+  actionDescription: {
+    opacity: 0.7,
+    fontSize: 14,
+  },
+  auctionsContainer: {
+    gap: 16,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+  },
+  auctionsList: {
+    gap: 12,
+  },
+  auctionCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  auctionCardContent: {
+    padding: 16,
+    gap: 12,
+  },
+  auctionCardHeader: {
+    gap: 8,
+  },
   auctionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-    marginRight: 8,
+    fontSize: 18,
+  },
+  hostBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  hostText: {
+    fontSize: 14,
   },
   auctionStats: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 16,
   },
   auctionStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
+    gap: 6,
+  },
+  statIcon: {
+    opacity: 0.7,
   },
   statText: {
     fontSize: 14,
-    fontWeight: '600',
+    opacity: 0.7,
   },
-  viewAllButton: {
-    flexDirection: 'row',
+  loader: {
+    marginTop: 20,
+  },
+  emptyState: {
+    padding: 32,
+    borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
-    marginTop: 8,
+    gap: 12,
   },
-  viewAllText: {
-    fontSize: 16,
-    fontWeight: '600',
+  emptyIcon: {
+    opacity: 0.5,
+  },
+  emptyTitle: {
+    textAlign: 'center',
+  },
+  emptyText: {
+    textAlign: 'center',
+    opacity: 0.7,
   },
 });

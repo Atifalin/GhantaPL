@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, ActivityIndicator, useColorScheme } from 'react-native';
+import { ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView, ThemedText } from '../components/Themed';
 import Button from '../components/Button';
@@ -7,13 +7,14 @@ import AuctionDetailsCard from '../components/auction/AuctionDetailsCard';
 import BiddingCard from '../components/auction/BiddingCard';
 import { WonPlayersList } from '../components/auction/WonPlayersList';
 import { useAuction } from '../hooks/useAuction';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 
 export default function LiveAuctionScreen() {
   const { id } = useLocalSearchParams();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const colors = Colors[colorScheme ?? 'light'];
+  const { theme, isDark } = useTheme();
+
+  console.log('LiveAuctionScreen - Auction ID:', id);
+  console.log('LiveAuctionScreen - Theme:', { theme, isDark });
 
   const {
     auction,
@@ -34,10 +35,19 @@ export default function LiveAuctionScreen() {
     participants,
   } = useAuction(id as string);
 
-  if (isLoading) {
+  console.log('LiveAuctionScreen - Auction State:', {
+    isLoading,
+    error,
+    isConnected,
+    hasAuction: !!auction,
+    hasCurrentPlayer: !!currentPlayer
+  });
+
+  // Show loading state if either theme or auction data is not ready
+  if (isLoading || !theme) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.text} />
+        <ActivityIndicator size="large" color={theme?.text} />
       </ThemedView>
     );
   }
@@ -85,12 +95,12 @@ export default function LiveAuctionScreen() {
   const showBiddingCard = currentPlayer && (isAuctionActive || isAuctionPaused);
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={[
           styles.content,
-          { backgroundColor: colors.background }
+          { backgroundColor: theme.background }
         ]}
       >
         <AuctionDetailsCard
@@ -116,6 +126,7 @@ export default function LiveAuctionScreen() {
             noBidCount={auction!.no_bid_count || 0}
             totalParticipants={participants?.length || 0}
             lastBidTime={auction!.last_bid_time}
+            bidCount={auction!.bid_count || 0}
             key={currentPlayer.id}
           />
         )}
@@ -124,7 +135,7 @@ export default function LiveAuctionScreen() {
           <ThemedView style={[
             styles.hostControls,
             { 
-              backgroundColor: isDark ? colors.card : colors.background,
+              backgroundColor: isDark ? theme.card : theme.background,
               borderColor: isDark ? '#404040' : '#E5E5EA'
             }
           ]}>
@@ -174,13 +185,13 @@ export default function LiveAuctionScreen() {
         <ThemedView style={[
           styles.wonPlayersSection,
           { 
-            backgroundColor: isDark ? colors.card : colors.background,
+            backgroundColor: isDark ? theme.card : theme.background,
             borderColor: isDark ? '#404040' : '#E5E5EA'
           }
         ]}>
           <ThemedText style={[
             styles.sectionTitle,
-            { color: colors.text }
+            { color: theme.text }
           ]}>
             Won Players
           </ThemedText>

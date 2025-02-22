@@ -9,14 +9,14 @@ export default function ModalLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: isDark ? Colors.dark.background : Colors.light.background,
-        },
-        headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
-        headerShadowVisible: false,
+        headerShown: false,
         presentation: 'modal',
         animation: 'slide_from_bottom',
-        headerLeft: () => null, // Remove back button
+        contentStyle: {
+          backgroundColor: 'transparent',
+        },
+        gestureEnabled: true,
+        gestureDirection: 'vertical',
       }}
     >
       <Stack.Screen

@@ -10,9 +10,10 @@ interface TimerProps {
   style?: ViewStyle;
   key?: string | number;
   lastBidTime: string;  // ISO string of the last bid time
+  currentBid: number;   // Current bid amount
 }
 
-export default function Timer({ duration, onComplete, isPaused = false, style, lastBidTime }: TimerProps) {
+export default function Timer({ duration, onComplete, isPaused = false, style, lastBidTime, currentBid }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(duration);
   const timerRef = useRef<NodeJS.Timeout>();
   const progressAnim = useRef(new Animated.Value(1)).current;
@@ -26,10 +27,26 @@ export default function Timer({ duration, onComplete, isPaused = false, style, l
     const lastBidDate = new Date(lastBidTime);
     const now = new Date();
     const elapsedSeconds = Math.floor((now.getTime() - lastBidDate.getTime()) / 1000);
-    const remainingTime = Math.max(0, duration - elapsedSeconds);
+    
+    // Calculate effective duration:
+    // First bid (currentBid = 0): 20 seconds
+    // Second bid: 15 seconds
+    // After that: decrease by 1 second for each bid (14, 13, 12, etc.)
+    let effectiveDuration;
+    if (currentBid === 0) {
+      effectiveDuration = duration; // 20 seconds
+    } else if (currentBid > 0 && !lastBidTime) {
+      effectiveDuration = 15; // Second bid is always 15 seconds
+    } else {
+      // Count how many bids have been made based on current bid being non-zero
+      const bidsMade = currentBid > 0 ? 1 : 0;
+      effectiveDuration = Math.max(5, 15 - bidsMade); // 14, 13, 12, etc.
+    }
+
+    const remainingTime = Math.max(0, effectiveDuration - elapsedSeconds);
     
     setTimeLeft(remainingTime);
-    progressAnim.setValue(remainingTime / duration);
+    progressAnim.setValue(remainingTime / effectiveDuration);
     startProgressAnimation(remainingTime);
 
     // Reset completion flag when lastBidTime changes
@@ -40,7 +57,7 @@ export default function Timer({ duration, onComplete, isPaused = false, style, l
       hasCompletedRef.current = true;
       onComplete();
     }
-  }, [lastBidTime, duration]);
+  }, [lastBidTime, duration, currentBid]);
 
   const startProgressAnimation = (remaining: number) => {
     if (progressAnimation.current) {

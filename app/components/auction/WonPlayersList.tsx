@@ -29,7 +29,7 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const { colors } = useTheme();
+  const { theme } = useTheme();
 
   useEffect(() => {
     fetchWonPlayers();
@@ -93,26 +93,26 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
   const renderPlayer = (item: WonPlayer) => (
     <View 
       key={`${item.player_id}-${item.winner_id}`}
-      style={[styles.playerCard, { backgroundColor: colors.card }]}
+      style={[styles.playerCard, { backgroundColor: theme.card }]}
     >
       <View style={styles.playerInfo}>
-        <Text style={[styles.playerName, { color: colors.text }]}>
+        <Text style={[styles.playerName, { color: theme.text }]}>
           {item.player.name}
         </Text>
         <View style={styles.statsRow}>
-          <Text style={[styles.statText, { color: colors.text }]}>
+          <Text style={[styles.statText, { color: theme.text }]}>
             OVR {item.player.ovr}
           </Text>
-          <Text style={[styles.positionText, { color: colors.text }]}>
+          <Text style={[styles.positionText, { color: theme.text }]}>
             {item.player.position}
           </Text>
         </View>
       </View>
       <View style={styles.winnerInfo}>
-        <Text style={[styles.winnerName, { color: colors.text }]}>
+        <Text style={[styles.winnerName, { color: theme.text }]}>
           {item.winner.avatar_emoji} {item.winner.display_name}
         </Text>
-        <Text style={[styles.bidAmount, { color: colors.primary }]}>
+        <Text style={[styles.bidAmount, { color: theme.tint }]}>
           {item.winning_bid.toLocaleString()} GC
         </Text>
       </View>
@@ -122,19 +122,27 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={theme.tint} />
+      </View>
+    );
+  }
+
+  if (!theme) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <FontAwesome name="search" size={16} color={colors.text} />
+      <View style={[styles.searchContainer, { backgroundColor: theme.card }]}>
+        <FontAwesome name="search" size={16} color={theme.text} />
         <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
+          style={[styles.searchInput, { color: theme.text }]}
           placeholder="Search players or winners..."
-          placeholderTextColor={colors.text}
+          placeholderTextColor={theme.text}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -146,7 +154,7 @@ export function WonPlayersList({ auctionId }: { auctionId: string }) {
             onPress={() => setShowAll(true)}
             style={({ pressed }) => [
               styles.showMoreButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 }
+              { backgroundColor: theme.tint, opacity: pressed ? 0.8 : 1 }
             ]}
           >
             <Text style={styles.showMoreText}>Show More</Text>

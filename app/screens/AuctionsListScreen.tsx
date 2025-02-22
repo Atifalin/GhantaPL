@@ -356,7 +356,7 @@ export default function AuctionsListScreen() {
                 backgroundColor: isDark ? '#252829' : '#fff',
               }
             ]}
-            onPress={() => router.push('/auctions/create')}
+            onPress={() => router.push('/modal/create-auction')}
           >
             <MaterialIcons 
               name="add" 

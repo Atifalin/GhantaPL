@@ -1,38 +1,46 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
+import { Colors } from '../constants/Colors';
 
-type ThemeColors = {
-  primary: string;
-  background: string;
-  card: string;
-  text: string;
-  border: string;
-  error: string;
-  success: string;
-};
+type ThemeMode = 'light' | 'dark';
 
 type ThemeContextType = {
-  colors: ThemeColors;
-};
-
-const defaultColors: ThemeColors = {
-  primary: '#007AFF',
-  background: '#F2F2F7',
-  card: '#FFFFFF',
-  text: '#000000',
-  border: '#E5E5EA',
-  error: '#FF3B30',
-  success: '#34C759',
+  isDark: boolean;
+  theme: typeof Colors.light;
+  toggleTheme: () => void;
+  setThemeMode: (mode: ThemeMode) => void;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
-  colors: defaultColors,
+  isDark: false,
+  theme: Colors.light,
+  toggleTheme: () => {},
+  setThemeMode: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const colorScheme = useColorScheme();
+  const [isDark, setIsDark] = useState(colorScheme === 'dark');
+
+  // Update theme when system theme changes
+  useEffect(() => {
+    setIsDark(colorScheme === 'dark');
+  }, [colorScheme]);
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+  };
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setIsDark(mode === 'dark');
+  };
+
+  const theme = isDark ? Colors.dark : Colors.light;
+
   return (
-    <ThemeContext.Provider value={{ colors: defaultColors }}>
+    <ThemeContext.Provider value={{ isDark, theme, toggleTheme, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
   );
