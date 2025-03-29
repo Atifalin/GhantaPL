@@ -69,7 +69,27 @@ export function useWinningBidHandler() {
         return true;
       }
 
-      // Update winner's budget first
+      // Try to record the winner first - this serves as our lock
+      const { error: winnerError } = await supabase
+        .from('auction_winners')
+        .insert({
+          auction_id: auctionId,
+          player_id: auction.current_player_id,
+          winner_id: auction.current_bidder_id,
+          winning_bid: auction.current_bid,
+          budget_deducted: false // New flag to track budget deduction
+        });
+
+      if (winnerError) {
+        // If we get a duplicate error, another client has already recorded the winner
+        if (winnerError.code === '23505') {
+          console.log('Winner already recorded by another client');
+          return true;
+        }
+        throw winnerError;
+      }
+
+      // Now that we've successfully recorded the winner, update the budget
       const { data: budgetData, error: budgetError } = await supabase
         .rpc('decrement_budget', {
           p_auction_id: auctionId,
@@ -77,26 +97,27 @@ export function useWinningBidHandler() {
           p_amount: auction.current_bid
         });
 
-      if (budgetError) throw budgetError;
-
-      // Record winner
-      const { error: winnerError } = await supabase
-        .from('auction_winners')
-        .insert({
-          auction_id: auctionId,
-          player_id: auction.current_player_id,
-          winner_id: auction.current_bidder_id,
-          winning_bid: auction.current_bid
-        });
-
-      if (winnerError) {
-        // If we get a duplicate error, it's okay - another client probably recorded it
-        if (winnerError.code === '23505') {
-          console.log('Winner already recorded by another client');
-          return true;
-        }
-        throw winnerError;
+      if (budgetError) {
+        console.error('Error deducting budget:', budgetError);
+        // Mark the failed budget deduction in winner record
+        await supabase
+          .from('auction_winners')
+          .update({ budget_deduction_failed: true })
+          .match({
+            auction_id: auctionId,
+            player_id: auction.current_player_id
+          });
+        throw budgetError;
       }
+
+      // Mark budget as successfully deducted
+      await supabase
+        .from('auction_winners')
+        .update({ budget_deducted: true })
+        .match({
+          auction_id: auctionId,
+          player_id: auction.current_player_id
+        });
 
       // Update auction stats
       const { error: statsError } = await supabase
