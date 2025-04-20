@@ -1,4 +1,7 @@
 import React from 'react';
+
+import { AnimatePresence, MotiView } from 'moti';
+import Toast from 'react-native-toast-message';
 import { ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { ThemedView, ThemedText } from '../components/Themed';
@@ -33,6 +36,9 @@ export default function LiveAuctionScreen() {
     retryConnection,
     handleStartAuction,
     participants,
+    isBidLoading,
+    isSyncing,
+    isMajorActionLoading,
   } = useAuction(id as string);
 
   console.log('LiveAuctionScreen - Auction State:', {
@@ -43,11 +49,11 @@ export default function LiveAuctionScreen() {
     hasCurrentPlayer: !!currentPlayer
   });
 
-  // Show loading state if either theme or auction data is not ready
+  // Show skeleton loader if loading or syncing
   if (isLoading || !theme) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={theme?.text} />
+        <ActivityIndicator size="large" color={theme?.text || '#333'} />
       </ThemedView>
     );
   }
@@ -95,7 +101,13 @@ export default function LiveAuctionScreen() {
   const showBiddingCard = currentPlayer && (isAuctionActive || isAuctionPaused);
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ThemedView style={[styles.container, { backgroundColor: theme.background }]}> 
+      {isSyncing && (
+        <ThemedView style={styles.syncingBar}>
+          <ActivityIndicator size="small" color={(theme as any).primary || '#007AFF'} />
+          <ThemedText style={styles.syncingText}>Syncing...</ThemedText>
+        </ThemedView>
+      )}
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={[
@@ -126,7 +138,6 @@ export default function LiveAuctionScreen() {
             noBidCount={auction!.no_bid_count || 0}
             totalParticipants={participants?.length || 0}
             lastBidTime={auction!.last_bid_time}
-            bidCount={auction!.bid_count || 0}
             key={currentPlayer.id}
           />
         )}
@@ -198,11 +209,60 @@ export default function LiveAuctionScreen() {
           <WonPlayersList auctionId={id as string} />
         </ThemedView>
       </ScrollView>
+      {/* Animated overlay for major action loading */}
+      <AnimatePresence>
+        {isMajorActionLoading && (
+          <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 0.7 }}
+            exit={{ opacity: 0 }}
+            style={styles.loadingOverlay}
+          >
+            <ActivityIndicator size="large" color={theme.text} />
+            <ThemedText style={styles.loadingText}>Processing...</ThemedText>
+          </MotiView>
+        )}
+      </AnimatePresence>
+      {/* Toast notification container */}
+      <Toast />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  syncingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    backgroundColor: '#F0F4FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E6F0',
+  },
+  syncingText: {
+    marginLeft: 8,
+    color: '#2D5EFF',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000',
+    opacity: 0.7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+    marginTop: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
   },

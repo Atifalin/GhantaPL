@@ -59,6 +59,19 @@ The Live Auction screen (`LiveAuctionScreen.tsx`) manages the real-time auction 
   - Start/Pause auction
   - Skip current player
   - End auction
+
+---
+
+## Changelog
+
+### UI/UX Improvements (April 2025)
+- Replaced skeleton loader and gradient shimmer with a simple, reliable spinner (`ActivityIndicator`) for loading states, ensuring compatibility with Expo Go and all platforms.
+- Added a subtle syncing indicator bar at the top of the auction screen. During background syncs/real-time updates, users see a "Syncing..." bar instead of a full-page refresh, for a smoother experience.
+- The full-screen loading spinner now only appears on the initial load, not on every real-time update.
+- Removed all native gradient/skeleton dependencies to prevent Expo Go errors (`BVLinearGradient` native error).
+- No changes to auction logic or real-time functionality—just a much better and less disruptive loading experience for users.
+
+---
   - Restart completed auctions
 - **Bidding Interface**: 
   - Current bid display

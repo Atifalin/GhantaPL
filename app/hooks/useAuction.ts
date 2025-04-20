@@ -7,6 +7,8 @@ import { useAuctionActions } from './auction/useAuctionActions';
 import { useWinningBidHandler } from './auction/useWinningBidHandler';
 import { useToast } from '../context/ToastContext';
 
+import { useState } from 'react';
+
 export function useAuction(id: string) {
   const { user } = useAuth();
   const { handleWinningBid } = useWinningBidHandler();
@@ -26,6 +28,11 @@ export function useAuction(id: string) {
 
   const isHost = auction?.host_id === user?.id;
 
+  // Fine-grained loading states
+  const [isBidLoading, setIsBidLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isMajorActionLoading, setIsMajorActionLoading] = useState(false);
+
   const {
     handleBid,
     handleSkipPlayer,
@@ -36,7 +43,9 @@ export function useAuction(id: string) {
 
   // Handle auction state changes
   useEffect(() => {
-    fetchAuctionData(user?.id);
+    setIsSyncing(true);
+    setIsSyncing(true);
+    fetchAuctionData(user?.id).finally(() => setIsSyncing(false));
 
     // Subscribe to both auction and participant changes
     const channel = supabase.channel('auction-' + id)
@@ -95,6 +104,44 @@ export function useAuction(id: string) {
       clearInterval(heartbeatInterval);
     };
   }, [id, user?.id]);
+
+  // Wrap bid handler to set loading state
+  const placeBid = async (...args: Parameters<typeof handleBid>) => {
+    setIsBidLoading(true);
+    try {
+      await handleBid(...args);
+    } finally {
+      setIsBidLoading(false);
+    }
+  };
+
+  // Wrap major actions to set loading state
+  const startAuction = async (...args: Parameters<typeof handleStartAuction>) => {
+    setIsMajorActionLoading(true);
+    try {
+      await handleStartAuction(...args);
+    } finally {
+      setIsMajorActionLoading(false);
+    }
+  };
+
+  const endAuction = async (...args: Parameters<typeof handleEndAuction>) => {
+    setIsMajorActionLoading(true);
+    try {
+      await handleEndAuction(...args);
+    } finally {
+      setIsMajorActionLoading(false);
+    }
+  };
+
+  const skipPlayer = async (...args: Parameters<typeof handleSkipPlayer>) => {
+    setIsMajorActionLoading(true);
+    try {
+      await handleSkipPlayer(...args);
+    } finally {
+      setIsMajorActionLoading(false);
+    }
+  };
 
   const handleBidTimerComplete = useCallback(async () => {
     try {
@@ -179,5 +226,9 @@ export function useAuction(id: string) {
     handleEndAuction,
     handleStartAuction,
     retryConnection: fetchAuctionData,
+    // Loading states for smooth UI
+    isBidLoading,
+    isSyncing,
+    isMajorActionLoading,
   };
 }
